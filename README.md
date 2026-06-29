@@ -19,6 +19,7 @@ development until authentication is added.
 ## Tech Stack
 
 - React
+- React Router
 - JavaScript
 - Vite
 - Plain CSS
@@ -100,9 +101,9 @@ The API runs at `http://localhost:5001`.
 
 ## Admin Dashboard
 
-Open the frontend and use the `Admin` link in the header, or scroll to the
-development admin section. The dashboard fetches workflow audit leads from the
-backend and allows status updates.
+Open the frontend and use the `Admin` link in the header, or visit
+`http://localhost:5173/admin` during development. The dashboard fetches
+workflow audit leads from the backend and allows status updates.
 
 Status options:
 

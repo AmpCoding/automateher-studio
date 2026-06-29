@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
@@ -87,22 +88,35 @@ function BrandName() {
 }
 
 function Header() {
+  const location = useLocation()
+  const isAdminPage = location.pathname === '/admin'
+
   return (
     <header className="site-header">
       <div className="header-main section-shell">
-        <a className="brand" href="#top" aria-label="AutomateHER Studio home">
+        <Link className="brand" to="/" aria-label="AutomateHER Studio home">
           <span className="brand-mark">A</span>
           <BrandName />
-        </a>
+        </Link>
         <nav className="site-nav" aria-label="Primary navigation">
-          <a href="#services">Services</a>
-          <a href="#packages">Packages</a>
-          <a href="#audit">Audit</a>
-          <a href="#admin">Admin</a>
+          {!isAdminPage && (
+            <>
+              <a href="#services">Services</a>
+              <a href="#packages">Packages</a>
+              <a href="#audit">Audit</a>
+            </>
+          )}
+          <NavLink to="/admin">Admin</NavLink>
         </nav>
-        <a className="nav-cta" href="#audit">
-          Start audit
-        </a>
+        {isAdminPage ? (
+          <Link className="nav-cta" to="/">
+            View site
+          </Link>
+        ) : (
+          <a className="nav-cta" href="#audit">
+            Start audit
+          </a>
+        )}
       </div>
     </header>
   )
@@ -540,14 +554,17 @@ function AdminDashboard() {
   }, [])
 
   return (
-    <section className="admin-section" id="admin">
+    <section className="admin-section">
       <div className="section-shell section-block">
         <SectionIntro eyebrow="Development admin" title="Workflow audit leads">
           View incoming workflow audit requests and update lead status while the
           dashboard is still development-only.
         </SectionIntro>
         <div className="admin-toolbar">
-          <p>No authentication is connected yet. Keep this dashboard local during development.</p>
+          <p>
+            Development-only admin dashboard. Authentication will be added in a
+            future version.
+          </p>
           <button className="button button-secondary" type="button" onClick={loadLeads}>
             Refresh leads
           </button>
@@ -644,23 +661,38 @@ function WorkflowAudit() {
 }
 
 function Footer() {
+  const location = useLocation()
+  const isAdminPage = location.pathname === '/admin'
+
   return (
     <footer className="site-footer">
       <div className="section-shell footer-layout">
         <div>
-          <a className="brand footer-brand" href="#top" aria-label="AutomateHER Studio home">
+          <Link className="brand footer-brand" to="/" aria-label="AutomateHER Studio home">
             <span className="brand-mark">A</span>
             <BrandName />
-          </a>
+          </Link>
           <p>Service-first automation, portals, and process cleanup.</p>
         </div>
         <div className="footer-links">
-          <a href="#services">Services</a>
-          <a href="#packages">Packages</a>
-          <a href="#audit">Workflow audit</a>
+          <a href={isAdminPage ? '/#services' : '#services'}>Services</a>
+          <a href={isAdminPage ? '/#packages' : '#packages'}>Packages</a>
+          <a href={isAdminPage ? '/#audit' : '#audit'}>Workflow audit</a>
         </div>
       </div>
     </footer>
+  )
+}
+
+function HomePage() {
+  return (
+    <>
+      <Hero />
+      <PainPoints />
+      <Services />
+      <Packages />
+      <WorkflowAudit />
+    </>
   )
 }
 
@@ -669,12 +701,10 @@ function App() {
     <div className="app-shell">
       <Header />
       <main>
-        <Hero />
-        <PainPoints />
-        <Services />
-        <Packages />
-        <WorkflowAudit />
-        <AdminDashboard />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+        </Routes>
       </main>
       <Footer />
     </div>
