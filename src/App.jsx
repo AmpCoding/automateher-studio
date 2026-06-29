@@ -65,6 +65,23 @@ const budgetRanges = [
   'Not sure yet',
 ]
 
+const timelineOptions = [
+  'As soon as possible',
+  'Within 2\u20134 weeks',
+  'Within 1\u20132 months',
+  'Just exploring',
+]
+
+const contactMethods = ['Email', 'Phone', 'Text']
+
+function getSavedAuditRequests(storageKey) {
+  try {
+    return JSON.parse(localStorage.getItem(storageKey) || '[]')
+  } catch {
+    return []
+  }
+}
+
 function BrandName() {
   return (
     <span className="brand-word">
@@ -270,6 +287,18 @@ function WorkflowAuditForm() {
 
   function handleSubmit(event) {
     event.preventDefault()
+    const form = event.currentTarget
+    const formData = new FormData(form)
+    const submission = {
+      submittedAt: new Date().toISOString(),
+      ...Object.fromEntries(formData.entries()),
+    }
+
+    const storageKey = 'automateherWorkflowAuditRequests'
+    const savedSubmissions = getSavedAuditRequests(storageKey)
+    localStorage.setItem(storageKey, JSON.stringify([...savedSubmissions, submission]))
+
+    form.reset()
     setSubmitted(true)
   }
 
@@ -277,11 +306,10 @@ function WorkflowAuditForm() {
     return (
       <div className="thank-you" role="status">
         <p className="eyebrow">Request received</p>
-        <h3>Thank you for sharing your workflow.</h3>
+        <h3>Thank you!</h3>
         <p>
-          AutomateHER Studio has the details needed for a first review. The next
-          step is to identify the highest-friction process and shape a practical
-          cleanup path.
+          Your workflow audit request has been received. I&rsquo;ll review your
+          process and follow up with next steps.
         </p>
         <button className="button button-secondary" onClick={() => setSubmitted(false)}>
           Send another request
@@ -291,72 +319,108 @@ function WorkflowAuditForm() {
   }
 
   return (
-    <form className="audit-form" onSubmit={handleSubmit}>
-      <div className="form-field">
-        <label htmlFor="name">Name</label>
-        <input id="name" name="name" type="text" autoComplete="name" required />
-      </div>
-      <div className="form-field">
-        <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" autoComplete="email" required />
-      </div>
-      <div className="form-field">
-        <label htmlFor="business-name">Business name</label>
-        <input id="business-name" name="businessName" type="text" required />
-      </div>
-      <div className="form-field">
-        <label htmlFor="business-type">Business type</label>
-        <input
-          id="business-type"
-          name="businessType"
-          type="text"
-          placeholder="Nonprofit, salon, agency, clinic..."
-        />
-      </div>
-      <div className="form-field full-width">
-        <label htmlFor="current-process">Current process</label>
-        <textarea
-          id="current-process"
-          name="currentProcess"
-          rows="4"
-          placeholder="What happens today from intake to completion?"
-        ></textarea>
-      </div>
-      <div className="form-field full-width">
-        <label htmlFor="workflow-problem">Biggest workflow problem</label>
-        <textarea
-          id="workflow-problem"
-          name="workflowProblem"
-          rows="4"
-          placeholder="Where do things get delayed, duplicated, missed, or confusing?"
-        ></textarea>
-      </div>
-      <div className="form-field">
-        <label htmlFor="tools-used">Tools currently used</label>
-        <input
-          id="tools-used"
-          name="toolsUsed"
-          type="text"
-          placeholder="Google Sheets, Airtable, email, Zapier..."
-        />
-      </div>
-      <div className="form-field">
-        <label htmlFor="budget-range">Budget range</label>
-        <select id="budget-range" name="budgetRange" defaultValue="">
-          <option value="" disabled>
-            Select a range
-          </option>
-          {budgetRanges.map((range) => (
-            <option value={range} key={range}>
-              {range}
+    <div className="audit-form-panel">
+      <form className="audit-form" onSubmit={handleSubmit}>
+        <div className="form-field">
+          <label htmlFor="name">Name</label>
+          <input id="name" name="name" type="text" autoComplete="name" required />
+        </div>
+        <div className="form-field">
+          <label htmlFor="email">Email</label>
+          <input id="email" name="email" type="email" autoComplete="email" required />
+        </div>
+        <div className="form-field">
+          <label htmlFor="business-name">Business name</label>
+          <input id="business-name" name="businessName" type="text" required />
+        </div>
+        <div className="form-field">
+          <label htmlFor="business-type">Business type</label>
+          <input
+            id="business-type"
+            name="businessType"
+            type="text"
+            placeholder="Nonprofit, salon, agency, clinic..."
+            required
+          />
+        </div>
+        <div className="form-field full-width">
+          <label htmlFor="current-process">Current process</label>
+          <textarea
+            id="current-process"
+            name="currentProcess"
+            rows="4"
+            placeholder="What happens today from intake to completion?"
+            required
+          ></textarea>
+        </div>
+        <div className="form-field full-width">
+          <label htmlFor="workflow-problem">Biggest workflow problem</label>
+          <textarea
+            id="workflow-problem"
+            name="workflowProblem"
+            rows="4"
+            placeholder="Where do things get delayed, duplicated, missed, or confusing?"
+            required
+          ></textarea>
+        </div>
+        <div className="form-field">
+          <label htmlFor="tools-used">Tools currently used</label>
+          <input
+            id="tools-used"
+            name="toolsUsed"
+            type="text"
+            placeholder="Google Sheets, Airtable, email, Zapier..."
+            required
+          />
+        </div>
+        <div className="form-field">
+          <label htmlFor="budget-range">Budget range</label>
+          <select id="budget-range" name="budgetRange" defaultValue="" required>
+            <option value="" disabled>
+              Select a range
             </option>
-          ))}
-        </select>
-      </div>
-      <button className="button button-primary form-submit" type="submit">
-        Request workflow audit
-      </button>
-    </form>
+            {budgetRanges.map((range) => (
+              <option value={range} key={range}>
+                {range}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-field">
+          <label htmlFor="project-timeline">Project timeline</label>
+          <select id="project-timeline" name="projectTimeline" defaultValue="" required>
+            <option value="" disabled>
+              Select a timeline
+            </option>
+            {timelineOptions.map((timeline) => (
+              <option value={timeline} key={timeline}>
+                {timeline}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-field">
+          <label htmlFor="contact-method">Preferred contact method</label>
+          <select id="contact-method" name="preferredContactMethod" defaultValue="" required>
+            <option value="" disabled>
+              Select a method
+            </option>
+            {contactMethods.map((method) => (
+              <option value={method} key={method}>
+                {method}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button className="button button-primary form-submit" type="submit">
+          Request workflow audit
+        </button>
+      </form>
+      <p className="form-note">
+        This free audit helps identify what can be automated, simplified, or
+        moved out of spreadsheets.
+      </p>
+    </div>
   )
 }
 
