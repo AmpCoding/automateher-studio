@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
 
 const painPoints = [
   {
@@ -74,13 +76,7 @@ const timelineOptions = [
 
 const contactMethods = ['Email', 'Phone', 'Text']
 
-function getSavedAuditRequests(storageKey) {
-  try {
-    return JSON.parse(localStorage.getItem(storageKey) || '[]')
-  } catch {
-    return []
-  }
-}
+const leadStatuses = ['New', 'Reviewed', 'Contacted', 'Proposal Sent', 'Won', 'Lost']
 
 function BrandName() {
   return (
@@ -102,6 +98,7 @@ function Header() {
           <a href="#services">Services</a>
           <a href="#packages">Packages</a>
           <a href="#audit">Audit</a>
+          <a href="#admin">Admin</a>
         </nav>
         <a className="nav-cta" href="#audit">
           Start audit
@@ -284,22 +281,40 @@ function Packages() {
 
 function WorkflowAuditForm() {
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     const form = event.currentTarget
     const formData = new FormData(form)
-    const submission = {
-      submittedAt: new Date().toISOString(),
-      ...Object.fromEntries(formData.entries()),
+    const submission = Object.fromEntries(formData.entries())
+
+    setIsSubmitting(true)
+    setErrorMessage('')
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/audit-leads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submission),
+      })
+
+      if (!response.ok) {
+        throw new Error('Unable to submit workflow audit request.')
+      }
+
+      form.reset()
+      setSubmitted(true)
+    } catch {
+      setErrorMessage(
+        'Something went wrong while sending your request. Please try again in a moment.',
+      )
+    } finally {
+      setIsSubmitting(false)
     }
-
-    const storageKey = 'automateherWorkflowAuditRequests'
-    const savedSubmissions = getSavedAuditRequests(storageKey)
-    localStorage.setItem(storageKey, JSON.stringify([...savedSubmissions, submission]))
-
-    form.reset()
-    setSubmitted(true)
   }
 
   if (submitted) {
@@ -328,6 +343,10 @@ function WorkflowAuditForm() {
         <div className="form-field">
           <label htmlFor="email">Email</label>
           <input id="email" name="email" type="email" autoComplete="email" required />
+        </div>
+        <div className="form-field">
+          <label htmlFor="phone">Phone</label>
+          <input id="phone" name="phone" type="tel" autoComplete="tel" required />
         </div>
         <div className="form-field">
           <label htmlFor="business-name">Business name</label>
@@ -412,8 +431,13 @@ function WorkflowAuditForm() {
             ))}
           </select>
         </div>
-        <button className="button button-primary form-submit" type="submit">
-          Request workflow audit
+        {errorMessage && (
+          <p className="form-error" role="alert">
+            {errorMessage}
+          </p>
+        )}
+        <button className="button button-primary form-submit" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Sending request...' : 'Request workflow audit'}
         </button>
       </form>
       <p className="form-note">
@@ -421,6 +445,175 @@ function WorkflowAuditForm() {
         moved out of spreadsheets.
       </p>
     </div>
+  )
+}
+
+function formatLeadDate(dateValue) {
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(dateValue))
+}
+
+function AdminDashboard() {
+  const [leads, setLeads] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
+
+  async function loadLeads() {
+    setIsLoading(true)
+    setErrorMessage('')
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/audit-leads`)
+
+      if (!response.ok) {
+        throw new Error('Unable to load workflow audit leads.')
+      }
+
+      const data = await response.json()
+      setLeads(data)
+    } catch {
+      setErrorMessage('Unable to load leads. Make sure the backend server is running.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function updateLeadStatus(leadId, status) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/audit-leads/${leadId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Unable to update workflow audit lead.')
+      }
+
+      const updatedLead = await response.json()
+      setLeads((currentLeads) =>
+        currentLeads.map((lead) => (lead.id === updatedLead.id ? updatedLead : lead)),
+      )
+    } catch {
+      setErrorMessage('Unable to update the lead status. Please try again.')
+    }
+  }
+
+  useEffect(() => {
+    let shouldUpdate = true
+
+    async function loadInitialLeads() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/audit-leads`)
+
+        if (!response.ok) {
+          throw new Error('Unable to load workflow audit leads.')
+        }
+
+        const data = await response.json()
+
+        if (shouldUpdate) {
+          setLeads(data)
+          setErrorMessage('')
+        }
+      } catch {
+        if (shouldUpdate) {
+          setErrorMessage('Unable to load leads. Make sure the backend server is running.')
+        }
+      } finally {
+        if (shouldUpdate) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadInitialLeads()
+
+    return () => {
+      shouldUpdate = false
+    }
+  }, [])
+
+  return (
+    <section className="admin-section" id="admin">
+      <div className="section-shell section-block">
+        <SectionIntro eyebrow="Development admin" title="Workflow audit leads">
+          View incoming workflow audit requests and update lead status while the
+          dashboard is still development-only.
+        </SectionIntro>
+        <div className="admin-toolbar">
+          <p>No authentication is connected yet. Keep this dashboard local during development.</p>
+          <button className="button button-secondary" type="button" onClick={loadLeads}>
+            Refresh leads
+          </button>
+        </div>
+        {errorMessage && (
+          <p className="admin-message" role="alert">
+            {errorMessage}
+          </p>
+        )}
+        {isLoading ? (
+          <p className="admin-message">Loading workflow audit leads...</p>
+        ) : leads.length === 0 ? (
+          <p className="admin-message">No workflow audit leads yet.</p>
+        ) : (
+          <div className="lead-grid">
+            {leads.map((lead) => (
+              <article className="lead-card" key={lead.id}>
+                <div className="lead-card-header">
+                  <div>
+                    <h3>{lead.name}</h3>
+                    <p>{lead.business_name}</p>
+                  </div>
+                  <span>{formatLeadDate(lead.created_at)}</span>
+                </div>
+                <dl className="lead-details">
+                  <div>
+                    <dt>Email</dt>
+                    <dd>{lead.email}</dd>
+                  </div>
+                  <div>
+                    <dt>Business type</dt>
+                    <dd>{lead.business_type}</dd>
+                  </div>
+                  <div>
+                    <dt>Budget</dt>
+                    <dd>{lead.budget_range}</dd>
+                  </div>
+                  <div>
+                    <dt>Timeline</dt>
+                    <dd>{lead.project_timeline}</dd>
+                  </div>
+                  <div>
+                    <dt>Contact</dt>
+                    <dd>{lead.preferred_contact_method}</dd>
+                  </div>
+                </dl>
+                <label className="lead-status-label" htmlFor={`lead-status-${lead.id}`}>
+                  Status
+                </label>
+                <select
+                  id={`lead-status-${lead.id}`}
+                  value={lead.status}
+                  onChange={(event) => updateLeadStatus(lead.id, event.target.value)}
+                >
+                  {leadStatuses.map((status) => (
+                    <option value={status} key={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -481,6 +674,7 @@ function App() {
         <Services />
         <Packages />
         <WorkflowAudit />
+        <AdminDashboard />
       </main>
       <Footer />
     </div>
