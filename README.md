@@ -1,16 +1,51 @@
-# React + Vite
+# AutomateHER Studio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+AutomateHER Studio is a service-first tech startup website built with React and Vite.
+The homepage introduces workflow cleanup services for small businesses and nonprofits,
+including custom portals, workflow automations, dashboards, alerts, and support packages.
 
-Currently, two official plugins are available:
+This first frontend version includes:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Responsive homepage
+- Hero section with calls to action
+- Sapphire & Soft Pearl brand styling
+- Pain points section
+- Services section
+- Packages and pricing cards
+- Workflow Audit form
+- Local thank-you message on form submit
 
-## React Compiler
+No backend, authentication, database, payments, or admin dashboard is connected yet.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- React
+- JavaScript
+- Vite
+- Plain CSS
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Run Locally
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Build for production:
+
+```bash
+npm run build
+```
+
+Preview the production build:
+
+```bash
+npm run preview
+```

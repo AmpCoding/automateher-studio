@@ -1,121 +1,425 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+const painPoints = [
+  {
+    title: 'Too many places to check',
+    copy: 'Requests, client notes, files, and approvals are scattered across inboxes, spreadsheets, and memory.',
+  },
+  {
+    title: 'Follow-ups depend on willpower',
+    copy: 'The team loses time remembering who needs a reminder, what is overdue, and what should happen next.',
+  },
+  {
+    title: 'Leadership cannot see the bottleneck',
+    copy: 'Work is happening, but status, ownership, and stalled steps are hard to understand at a glance.',
+  },
+]
+
+const services = [
+  {
+    title: 'Custom portals',
+    copy: 'Client, member, vendor, or staff portals that collect information, clarify next steps, and reduce back-and-forth.',
+  },
+  {
+    title: 'Workflow automations',
+    copy: 'Automated intake, routing, reminders, approvals, handoffs, and follow-ups built around the way your team works.',
+  },
+  {
+    title: 'Dashboards and alerts',
+    copy: 'Status views, deadline alerts, and operational snapshots that make daily decisions easier.',
+  },
+  {
+    title: 'Process cleanup',
+    copy: 'Practical mapping, simplification, and documentation so the new system is easier to run after launch.',
+  },
+]
+
+const packages = [
+  {
+    name: 'Starter Package',
+    price: '$750\u2013$1,500',
+    description: 'A focused cleanup for one workflow, intake form, tracker, or lightweight portal.',
+    features: ['Workflow audit', 'Simple portal or automation', 'Launch checklist'],
+  },
+  {
+    name: 'Growth Package',
+    price: '$2,500\u2013$5,000',
+    description: 'A deeper build for teams ready to connect multiple processes and reduce repetitive admin.',
+    features: ['Process map', 'Custom portal build', 'Dashboards and alerts'],
+    featured: true,
+  },
+  {
+    name: 'Monthly Support',
+    price: '$99\u2013$499/month',
+    description: 'Ongoing improvements, monitoring, fixes, and small enhancements after your system goes live.',
+    features: ['Monthly check-ins', 'Light updates', 'Priority support window'],
+  },
+]
+
+const budgetRanges = [
+  'Under $1,000',
+  '$1,000\u2013$2,500',
+  '$2,500\u2013$5,000',
+  '$5,000+',
+  'Not sure yet',
+]
+
+function BrandName() {
+  return (
+    <span className="brand-word">
+      Automate<span>HER</span> Studio
+    </span>
+  )
+}
+
+function Header() {
+  return (
+    <header className="site-header">
+      <div className="header-main section-shell">
+        <a className="brand" href="#top" aria-label="AutomateHER Studio home">
+          <span className="brand-mark">A</span>
+          <BrandName />
+        </a>
+        <nav className="site-nav" aria-label="Primary navigation">
+          <a href="#services">Services</a>
+          <a href="#packages">Packages</a>
+          <a href="#audit">Audit</a>
+        </nav>
+        <a className="nav-cta" href="#audit">
+          Start audit
+        </a>
+      </div>
+    </header>
+  )
+}
+
+function HeroVisual() {
+  return (
+    <div className="hero-visual" aria-hidden="true">
+      <div className="dashboard-window">
+        <div className="window-top">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div className="dashboard-grid">
+          <div className="metric-card">
+            <small>Requests routed</small>
+            <strong>42</strong>
+            <span className="trend">+18%</span>
+          </div>
+          <div className="metric-card">
+            <small>Overdue tasks</small>
+            <strong>3</strong>
+            <span className="trend quiet">watching</span>
+          </div>
+          <div className="workflow-card">
+            <div className="workflow-row">
+              <span>Intake</span>
+              <strong>live</strong>
+            </div>
+            <div className="progress-track">
+              <span></span>
+            </div>
+            <div className="automation-steps">
+              <span>Form</span>
+              <span>Route</span>
+              <span>Alert</span>
+            </div>
+          </div>
+          <div className="timeline-card">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+      <div className="floating-note">
+        <span className="status-dot"></span>
+        <div>
+          <strong>Follow-up sent</strong>
+          <small>Client receives next step automatically</small>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Hero() {
+  return (
+    <section className="hero-section" id="top">
+      <div className="section-shell hero-layout">
+        <div className="hero-content">
+          <p className="eyebrow">Workflow systems for small teams</p>
+          <h1>Replace the spreadsheet scramble with systems that run cleanly.</h1>
+          <p className="hero-copy">
+            AutomateHER Studio helps small businesses and nonprofits turn messy
+            spreadsheets, inbox follow-ups, and manual admin into custom portals,
+            workflow automations, dashboards, alerts, and clear business processes.
+          </p>
+          <div className="hero-actions">
+            <a className="button button-primary" href="#audit">
+              Book a workflow audit
+            </a>
+            <a className="button button-secondary" href="#services">
+              Explore services
+            </a>
+          </div>
+        </div>
+        <HeroVisual />
+      </div>
+    </section>
+  )
+}
+
+function SectionIntro({ eyebrow, title, children }) {
+  return (
+    <div className="section-intro">
+      <p className="eyebrow">{eyebrow}</p>
+      <h2>{title}</h2>
+      {children && <p>{children}</p>}
+    </div>
+  )
+}
+
+function PainPoints() {
+  return (
+    <section className="section-shell section-block" id="pain-points">
+      <SectionIntro
+        eyebrow="What gets untangled"
+        title="Operational friction that quietly costs time"
+      >
+        The work may be getting done, but it should not require constant
+        checking, retyping, and chasing.
+      </SectionIntro>
+      <div className="card-grid pain-grid">
+        {painPoints.map((item, index) => (
+          <article className="info-card pain-card" key={item.title}>
+            <span className="card-number">{String(index + 1).padStart(2, '0')}</span>
+            <h3>{item.title}</h3>
+            <p>{item.copy}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function Services() {
+  return (
+    <section className="section-band" id="services">
+      <div className="section-shell section-block">
+        <SectionIntro
+          eyebrow="Services"
+          title="Clean systems for the work your team repeats every week"
+        >
+          Each build starts with the real process, then turns it into tools your
+          team can trust.
+        </SectionIntro>
+        <div className="card-grid services-grid">
+          {services.map((service) => (
+            <article className="info-card service-card" key={service.title}>
+              <span className="service-icon" aria-hidden="true">
+                {service.title.slice(0, 1)}
+              </span>
+              <h3>{service.title}</h3>
+              <p>{service.copy}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function PackageCard({ plan }) {
+  return (
+    <article className={plan.featured ? 'package-card featured' : 'package-card'}>
+      {plan.featured && <p className="badge">Most requested</p>}
+      <h3>{plan.name}</h3>
+      <p className="package-price">{plan.price}</p>
+      <p className="package-description">{plan.description}</p>
+      <ul>
+        {plan.features.map((feature) => (
+          <li key={feature}>{feature}</li>
+        ))}
+      </ul>
+    </article>
+  )
+}
+
+function Packages() {
+  return (
+    <section className="section-shell section-block" id="packages">
+      <SectionIntro eyebrow="Packages" title="Start with the right level of cleanup">
+        Pricing depends on scope, tools, integrations, and how much process
+        cleanup is needed before the build.
+      </SectionIntro>
+      <div className="packages-grid">
+        {packages.map((plan) => (
+          <PackageCard plan={plan} key={plan.name} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function WorkflowAuditForm() {
+  const [submitted, setSubmitted] = useState(false)
+
+  function handleSubmit(event) {
+    event.preventDefault()
+    setSubmitted(true)
+  }
+
+  if (submitted) {
+    return (
+      <div className="thank-you" role="status">
+        <p className="eyebrow">Request received</p>
+        <h3>Thank you for sharing your workflow.</h3>
+        <p>
+          AutomateHER Studio has the details needed for a first review. The next
+          step is to identify the highest-friction process and shape a practical
+          cleanup path.
+        </p>
+        <button className="button button-secondary" onClick={() => setSubmitted(false)}>
+          Send another request
+        </button>
+      </div>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
+    <form className="audit-form" onSubmit={handleSubmit}>
+      <div className="form-field">
+        <label htmlFor="name">Name</label>
+        <input id="name" name="name" type="text" autoComplete="name" required />
+      </div>
+      <div className="form-field">
+        <label htmlFor="email">Email</label>
+        <input id="email" name="email" type="email" autoComplete="email" required />
+      </div>
+      <div className="form-field">
+        <label htmlFor="business-name">Business name</label>
+        <input id="business-name" name="businessName" type="text" required />
+      </div>
+      <div className="form-field">
+        <label htmlFor="business-type">Business type</label>
+        <input
+          id="business-type"
+          name="businessType"
+          type="text"
+          placeholder="Nonprofit, salon, agency, clinic..."
+        />
+      </div>
+      <div className="form-field full-width">
+        <label htmlFor="current-process">Current process</label>
+        <textarea
+          id="current-process"
+          name="currentProcess"
+          rows="4"
+          placeholder="What happens today from intake to completion?"
+        ></textarea>
+      </div>
+      <div className="form-field full-width">
+        <label htmlFor="workflow-problem">Biggest workflow problem</label>
+        <textarea
+          id="workflow-problem"
+          name="workflowProblem"
+          rows="4"
+          placeholder="Where do things get delayed, duplicated, missed, or confusing?"
+        ></textarea>
+      </div>
+      <div className="form-field">
+        <label htmlFor="tools-used">Tools currently used</label>
+        <input
+          id="tools-used"
+          name="toolsUsed"
+          type="text"
+          placeholder="Google Sheets, Airtable, email, Zapier..."
+        />
+      </div>
+      <div className="form-field">
+        <label htmlFor="budget-range">Budget range</label>
+        <select id="budget-range" name="budgetRange" defaultValue="">
+          <option value="" disabled>
+            Select a range
+          </option>
+          {budgetRanges.map((range) => (
+            <option value={range} key={range}>
+              {range}
+            </option>
+          ))}
+        </select>
+      </div>
+      <button className="button button-primary form-submit" type="submit">
+        Request workflow audit
+      </button>
+    </form>
+  )
+}
+
+function WorkflowAudit() {
+  return (
+    <section className="audit-section" id="audit">
+      <div className="section-shell audit-layout">
+        <div className="audit-copy">
+          <p className="eyebrow">Workflow audit</p>
+          <h2>Tell us where the manual work is piling up.</h2>
           <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+            Use this quick audit request to outline the process that needs
+            attention. We will look for patterns, prioritize the biggest source
+            of friction, and recommend the simplest system worth building first.
           </p>
+          <div className="audit-note">
+            <strong>Good fit for:</strong>
+            <span>
+              intake chaos, recurring follow-ups, approval bottlenecks, client
+              portals, and reporting gaps.
+            </span>
+          </div>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        <WorkflowAuditForm />
+      </div>
+    </section>
+  )
+}
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+function Footer() {
+  return (
+    <footer className="site-footer">
+      <div className="section-shell footer-layout">
+        <div>
+          <a className="brand footer-brand" href="#top" aria-label="AutomateHER Studio home">
+            <span className="brand-mark">A</span>
+            <BrandName />
+          </a>
+          <p>Service-first automation, portals, and process cleanup.</p>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
+        <div className="footer-links">
+          <a href="#services">Services</a>
+          <a href="#packages">Packages</a>
+          <a href="#audit">Workflow audit</a>
         </div>
-      </section>
+      </div>
+    </footer>
+  )
+}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+function App() {
+  return (
+    <div className="app-shell">
+      <Header />
+      <main>
+        <Hero />
+        <PainPoints />
+        <Services />
+        <Packages />
+        <WorkflowAudit />
+      </main>
+      <Footer />
+    </div>
   )
 }
 
