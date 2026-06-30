@@ -11,10 +11,10 @@ This version includes:
 - Workflow Audit lead form with frontend and backend validation
 - Express API for workflow audit leads
 - PostgreSQL schema for saved submissions
-- Development-only admin dashboard for reviewing leads and updating status
+- JWT-protected admin dashboard for reviewing leads and updating status
 
-The admin dashboard does not have authentication yet. Keep it local during
-development until authentication is added.
+The admin dashboard uses a simple local admin login. Replace development
+secrets and passwords before deploying.
 
 ## Tech Stack
 
@@ -27,6 +27,8 @@ development until authentication is added.
 - Express
 - PostgreSQL
 - pg
+- bcryptjs
+- jsonwebtoken
 
 ## Frontend Setup
 
@@ -59,7 +61,7 @@ Create a local PostgreSQL database:
 createdb automateher_studio
 ```
 
-Create the workflow audit leads table:
+Create the workflow audit leads and admin users tables:
 
 ```bash
 psql automateher_studio -f schema.sql
@@ -76,6 +78,19 @@ Default `.env` values:
 ```bash
 PORT=5001
 DATABASE_URL=postgres://localhost:5432/automateher_studio
+JWT_SECRET=replace_with_a_long_random_secret
+ADMIN_NAME=Local Admin
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=change_this_password
+```
+
+Use a long random value for `JWT_SECRET`, and change the admin password before
+deployment.
+
+Create the first local admin user after setting `server/.env`:
+
+```bash
+npm run seed:admin
 ```
 
 Start the backend development server from the `server` folder:
@@ -101,19 +116,26 @@ required. Phone is optional.
 
 ## API Routes
 
+Public routes:
+
 - `GET /api/health`
 - `POST /api/audit-leads`
+- `POST /api/auth/login`
+
+Protected admin routes:
+
+- `GET /api/auth/me`
 - `GET /api/audit-leads`
 - `PATCH /api/audit-leads/:id/status`
 - `PATCH /api/audit-leads/:id/notes`
 
 ## Admin Dashboard
 
-Open the frontend and use the `Admin` link in the header, or visit
-`http://localhost:5173/admin` during development. The dashboard fetches
-workflow audit leads from the backend, shows lead metrics, supports searching
-and status filtering, allows status updates, and supports internal admin notes
-for each lead.
+Visit `http://localhost:5173/admin/login` and sign in with the seeded local
+admin user. After login, `http://localhost:5173/admin` fetches workflow audit
+leads from the backend, shows lead metrics, supports searching and status
+filtering, allows status updates, and supports internal admin notes for each
+lead.
 
 Status options:
 

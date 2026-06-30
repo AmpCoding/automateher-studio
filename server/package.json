@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon --watch index.js --watch db.js index.js",
+    "seed:admin": "node seedAdmin.js",
     "start": "node index.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.3"
   },
   "devDependencies": {

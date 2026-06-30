@@ -882,6 +882,67 @@ textarea:focus {
   gap: 22px;
 }
 
+.admin-login-section {
+  display: grid;
+  align-items: center;
+}
+
+.admin-login-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 0.54fr);
+  gap: 30px;
+  align-items: center;
+}
+
+.admin-login-copy,
+.admin-login-card {
+  border: 1px solid var(--admin-line);
+  border-radius: 8px;
+  box-shadow: var(--admin-shadow);
+}
+
+.admin-login-copy {
+  padding: 34px;
+  color: var(--admin-hero-ink);
+  background:
+    radial-gradient(circle at 86% 16%, color-mix(in srgb, var(--admin-accent) 24%, transparent), transparent 28%),
+    linear-gradient(135deg, var(--admin-primary), var(--admin-primary-2) 62%, color-mix(in srgb, var(--admin-primary) 78%, black));
+}
+
+.admin-login-copy h1 {
+  margin: 12px 0 16px;
+  max-width: 660px;
+  color: var(--admin-hero-ink);
+  font-size: 3.1rem;
+  line-height: 1;
+}
+
+.admin-login-copy p {
+  max-width: 580px;
+  margin: 0;
+  color: var(--admin-hero-muted);
+  line-height: 1.7;
+}
+
+.admin-login-card {
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--admin-panel) 94%, var(--admin-panel-strong)), var(--admin-panel));
+}
+
+.admin-login-card h2 {
+  margin: 6px 0 0;
+  color: var(--admin-ink);
+  font-size: 1.85rem;
+  line-height: 1.1;
+}
+
+.admin-login-button {
+  width: 100%;
+}
+
 .admin-section .eyebrow {
   color: var(--admin-accent);
 }
@@ -1010,6 +1071,21 @@ textarea:focus {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.admin-user-chip {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-line);
+  border-radius: 999px;
+  color: var(--admin-muted);
+  font-size: 0.84rem;
+  font-weight: 820;
+  background: color-mix(in srgb, var(--admin-panel) 82%, var(--admin-panel-strong));
+}
+
+.logout-button {
+  min-height: 42px;
 }
 
 .mode-toggle {
@@ -1442,7 +1518,8 @@ textarea:focus {
 
 @media (max-width: 980px) {
   .admin-hero,
-  .admin-appearance-panel {
+  .admin-appearance-panel,
+  .admin-login-layout {
     grid-template-columns: 1fr;
   }
 
@@ -1501,11 +1578,14 @@ textarea:focus {
   }
 
   .admin-hero,
+  .admin-login-copy,
+  .admin-login-card,
   .lead-management-card {
     padding: 22px;
   }
 
-  .admin-hero h1 {
+  .admin-hero h1,
+  .admin-login-copy h1 {
     font-size: 2.2rem;
   }
 

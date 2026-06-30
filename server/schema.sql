@@ -19,3 +19,16 @@ CREATE TABLE IF NOT EXISTS workflow_audit_leads (
 
 CREATE INDEX IF NOT EXISTS workflow_audit_leads_created_at_idx
   ON workflow_audit_leads (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS admin_users (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'admin',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS admin_users_email_idx
+  ON admin_users (email);

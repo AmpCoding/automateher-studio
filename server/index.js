@@ -1,11 +1,14 @@
+import bcrypt from 'bcryptjs'
 import cors from 'cors'
 import 'dotenv/config'
 import express from 'express'
+import jwt from 'jsonwebtoken'
 import { pool } from './db.js'
 
 const app = express()
 const PORT = process.env.PORT || 5001
 const HOST = process.env.HOST || '127.0.0.1'
+const JWT_SECRET = process.env.JWT_SECRET
 
 const allowedStatuses = ['New', 'Reviewed', 'Contacted', 'Proposal Sent', 'Won', 'Lost']
 
@@ -15,11 +18,114 @@ function cleanText(value) {
   return String(value || '').trim()
 }
 
+function createAdminToken(adminUser) {
+  return jwt.sign(
+    {
+      id: adminUser.id,
+      email: adminUser.email,
+      role: adminUser.role,
+    },
+    JWT_SECRET,
+    { expiresIn: '8h' },
+  )
+}
+
+function formatAdminProfile(adminUser) {
+  return {
+    id: adminUser.id,
+    name: adminUser.name,
+    email: adminUser.email,
+    role: adminUser.role,
+  }
+}
+
+function requireJwtSecret(response) {
+  if (JWT_SECRET) {
+    return true
+  }
+
+  response.status(500).json({ message: 'Admin authentication is not configured yet.' })
+  return false
+}
+
+async function requireAuth(request, response, next) {
+  if (!requireJwtSecret(response)) {
+    return
+  }
+
+  const authHeader = request.headers.authorization || ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+
+  if (!token) {
+    return response.status(401).json({ message: 'Please log in to access the admin dashboard.' })
+  }
+
+  try {
+    const decodedToken = jwt.verify(token, JWT_SECRET)
+    const result = await pool.query(
+      'SELECT id, name, email, role FROM admin_users WHERE id = $1',
+      [decodedToken.id],
+    )
+
+    if (result.rowCount === 0) {
+      return response.status(401).json({ message: 'Your admin session is no longer valid.' })
+    }
+
+    request.adminUser = result.rows[0]
+    next()
+  } catch {
+    response.status(401).json({ message: 'Your admin session has expired. Please log in again.' })
+  }
+}
+
 app.use(cors())
 app.use(express.json())
 
 app.get('/api/health', (request, response) => {
   response.json({ ok: true, service: 'AutomateHER Studio API' })
+})
+
+app.post('/api/auth/login', async (request, response) => {
+  if (!requireJwtSecret(response)) {
+    return
+  }
+
+  const { email, password } = request.body || {}
+  const cleanEmail = cleanText(email).toLowerCase()
+
+  if (!cleanEmail || !password) {
+    return response.status(400).json({ message: 'Please enter your email and password.' })
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT id, name, email, password_hash, role FROM admin_users WHERE email = $1',
+      [cleanEmail],
+    )
+
+    if (result.rowCount === 0) {
+      return response.status(401).json({ message: 'Email or password is incorrect.' })
+    }
+
+    const adminUser = result.rows[0]
+    const passwordMatches = await bcrypt.compare(password, adminUser.password_hash)
+
+    if (!passwordMatches) {
+      return response.status(401).json({ message: 'Email or password is incorrect.' })
+    }
+
+    response.json({
+      token: createAdminToken(adminUser),
+      admin: formatAdminProfile(adminUser),
+    })
+  } catch (error) {
+    console.error('Error logging in admin user:', error)
+    response.status(500).json({ message: 'Unable to log in right now. Please try again.' })
+  }
+})
+
+app.get('/api/auth/me', requireAuth, (request, response) => {
+  response.json({ admin: formatAdminProfile(request.adminUser) })
 })
 
 app.post('/api/audit-leads', async (request, response) => {
@@ -98,7 +204,7 @@ app.post('/api/audit-leads', async (request, response) => {
   }
 })
 
-app.get('/api/audit-leads', async (request, response) => {
+app.get('/api/audit-leads', requireAuth, async (request, response) => {
   try {
     const result = await pool.query(
       'SELECT * FROM workflow_audit_leads ORDER BY created_at DESC',
@@ -111,7 +217,7 @@ app.get('/api/audit-leads', async (request, response) => {
   }
 })
 
-app.patch('/api/audit-leads/:id/status', async (request, response) => {
+app.patch('/api/audit-leads/:id/status', requireAuth, async (request, response) => {
   const { id } = request.params
   const { status } = request.body || {}
 
@@ -139,7 +245,7 @@ app.patch('/api/audit-leads/:id/status', async (request, response) => {
   }
 })
 
-app.patch('/api/audit-leads/:id/notes', async (request, response) => {
+app.patch('/api/audit-leads/:id/notes', requireAuth, async (request, response) => {
   const { id } = request.params
   const { notes } = request.body || {}
 

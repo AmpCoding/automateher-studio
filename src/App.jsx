@@ -1,8 +1,9 @@
-import { Fragment, useEffect, useState } from 'react'
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { Fragment, useCallback, useEffect, useState } from 'react'
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import './App.css'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+const ADMIN_TOKEN_KEY = 'automateher_admin_token'
 
 const painPoints = [
   {
@@ -89,7 +90,7 @@ function BrandName() {
 
 function Header() {
   const location = useLocation()
-  const isAdminPage = location.pathname === '/admin'
+  const isAdminPage = location.pathname.startsWith('/admin')
 
   return (
     <header className={isAdminPage ? 'site-header admin-site-header' : 'site-header'}>
@@ -638,7 +639,188 @@ function formatLeadDate(dateValue) {
   }).format(new Date(dateValue))
 }
 
-function AdminDashboard() {
+function getStoredAdminToken() {
+  return localStorage.getItem(ADMIN_TOKEN_KEY) || ''
+}
+
+function saveStoredAdminToken(token) {
+  localStorage.setItem(ADMIN_TOKEN_KEY, token)
+}
+
+function clearStoredAdminToken() {
+  localStorage.removeItem(ADMIN_TOKEN_KEY)
+}
+
+function AdminLogin({ authToken, onLogin }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState(location.state?.message || '')
+
+  async function handleLogin(event) {
+    event.preventDefault()
+    setIsSubmitting(true)
+    setErrorMessage('')
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        throw new Error(data?.message || 'Unable to log in. Please try again.')
+      }
+
+      onLogin(data.token, data.admin)
+      navigate('/admin', { replace: true })
+    } catch (error) {
+      setErrorMessage(error.message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (authToken) {
+    return <Navigate to="/admin" replace />
+  }
+
+  return (
+    <section className="admin-section admin-login-section">
+      <div className="section-shell admin-login-layout">
+        <div className="admin-login-copy">
+          <p className="eyebrow">Admin access</p>
+          <h1>
+            Automate<span className="brand-inline-her">HER</span> Studio Admin
+          </h1>
+          <p>Log in to review workflow audit leads, update statuses, and manage internal notes.</p>
+        </div>
+        <form className="admin-login-card" onSubmit={handleLogin}>
+          <div>
+            <p className="eyebrow">Secure login</p>
+            <h2>Welcome back</h2>
+          </div>
+          <div className="form-field">
+            <label htmlFor="admin-email">Email</label>
+            <input
+              id="admin-email"
+              type="email"
+              value={email}
+              autoComplete="email"
+              placeholder="admin@example.com"
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="admin-password">Password</label>
+            <input
+              id="admin-password"
+              type="password"
+              value={password}
+              autoComplete="current-password"
+              placeholder="Enter your admin password"
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+          </div>
+          {errorMessage && (
+            <p className="admin-message error-message" role="alert">
+              {errorMessage}
+            </p>
+          )}
+          <button className="button button-secondary admin-login-button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Logging in...' : 'Log in'}
+          </button>
+        </form>
+      </div>
+    </section>
+  )
+}
+
+function ProtectedAdminRoute({ authToken, onAuthReady, onUnauthorized, adminUser }) {
+  const [isChecking, setIsChecking] = useState(true)
+  const [isAllowed, setIsAllowed] = useState(false)
+
+  useEffect(() => {
+    let shouldUpdate = true
+
+    async function verifySession() {
+      if (!authToken) {
+        setIsChecking(false)
+        setIsAllowed(false)
+        return
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        })
+        const data = await response.json().catch(() => null)
+
+        if (!response.ok) {
+          throw new Error(data?.message || 'Please log in again.')
+        }
+
+        if (shouldUpdate) {
+          onAuthReady(data.admin)
+          setIsAllowed(true)
+        }
+      } catch {
+        if (shouldUpdate) {
+          onUnauthorized()
+          setIsAllowed(false)
+        }
+      } finally {
+        if (shouldUpdate) {
+          setIsChecking(false)
+        }
+      }
+    }
+
+    verifySession()
+
+    return () => {
+      shouldUpdate = false
+    }
+  }, [authToken, onAuthReady, onUnauthorized])
+
+  if (!authToken) {
+    return <Navigate to="/admin/login" replace />
+  }
+
+  if (isChecking) {
+    return (
+      <section className="admin-section">
+        <div className="section-shell admin-shell">
+          <p className="admin-message loading-message">Checking admin session...</p>
+        </div>
+      </section>
+    )
+  }
+
+  if (!isAllowed) {
+    return (
+      <Navigate
+        to="/admin/login"
+        replace
+        state={{ message: 'Please log in to access the admin dashboard.' }}
+      />
+    )
+  }
+
+  return <AdminDashboard authToken={authToken} adminUser={adminUser} onUnauthorized={onUnauthorized} />
+}
+
+function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
   const [leads, setLeads] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
@@ -661,9 +843,18 @@ function AdminDashboard() {
     setErrorMessage('')
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/audit-leads`)
+      const response = await fetch(`${API_BASE_URL}/api/audit-leads`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          onUnauthorized()
+          return
+        }
+
         throw new Error('Unable to load workflow audit leads.')
       }
 
@@ -682,12 +873,18 @@ function AdminDashboard() {
       const response = await fetch(`${API_BASE_URL}/api/audit-leads/${leadId}/status`, {
         method: 'PATCH',
         headers: {
+          Authorization: `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ status }),
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          onUnauthorized()
+          return
+        }
+
         throw new Error('Unable to update workflow audit lead.')
       }
 
@@ -711,12 +908,18 @@ function AdminDashboard() {
       const response = await fetch(`${API_BASE_URL}/api/audit-leads/${leadId}/notes`, {
         method: 'PATCH',
         headers: {
+          Authorization: `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ notes: noteDrafts[leadId] || '' }),
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          onUnauthorized()
+          return
+        }
+
         throw new Error('Unable to update workflow audit lead notes.')
       }
 
@@ -747,9 +950,18 @@ function AdminDashboard() {
 
     async function loadInitialLeads() {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/audit-leads`)
+        const response = await fetch(`${API_BASE_URL}/api/audit-leads`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        })
 
         if (!response.ok) {
+          if (response.status === 401) {
+            onUnauthorized()
+            return
+          }
+
           throw new Error('Unable to load workflow audit leads.')
         }
 
@@ -776,7 +988,7 @@ function AdminDashboard() {
     return () => {
       shouldUpdate = false
     }
-  }, [])
+  }, [authToken, onUnauthorized])
 
   const metrics = [
     { label: 'Total Leads', value: leads.length },
@@ -823,6 +1035,7 @@ function AdminDashboard() {
             <h2>Midnight Plum dashboard</h2>
           </div>
           <div className="appearance-controls">
+            {adminUser && <p className="admin-user-chip">Signed in as {adminUser.name}</p>}
             <button
               className={isAdminDarkMode ? 'mode-toggle is-on' : 'mode-toggle'}
               type="button"
@@ -831,6 +1044,9 @@ function AdminDashboard() {
             >
               <span aria-hidden="true"></span>
               {isAdminDarkMode ? 'Dark mode' : 'Light mode'}
+            </button>
+            <button className="button button-secondary logout-button" type="button" onClick={onUnauthorized}>
+              Logout
             </button>
           </div>
         </div>
@@ -1028,7 +1244,7 @@ function WorkflowAudit() {
 
 function Footer() {
   const location = useLocation()
-  const isAdminPage = location.pathname === '/admin'
+  const isAdminPage = location.pathname.startsWith('/admin')
 
   return (
     <footer className={isAdminPage ? 'site-footer admin-site-footer' : 'site-footer'}>
@@ -1063,13 +1279,51 @@ function HomePage() {
 }
 
 function App() {
+  const navigate = useNavigate()
+  const [authToken, setAuthToken] = useState(getStoredAdminToken)
+  const [adminUser, setAdminUser] = useState(null)
+
+  const handleLogin = useCallback((token, adminProfile) => {
+    saveStoredAdminToken(token)
+    setAuthToken(token)
+    setAdminUser(adminProfile)
+  }, [])
+
+  const handleAuthReady = useCallback((adminProfile) => {
+    setAdminUser(adminProfile)
+  }, [])
+
+  const handleUnauthorized = useCallback(() => {
+    clearStoredAdminToken()
+    setAuthToken('')
+    setAdminUser(null)
+    navigate('/admin/login', {
+      replace: true,
+      state: { message: 'Please log in to access the admin dashboard.' },
+    })
+  }, [navigate])
+
   return (
     <div className="app-shell">
       <Header />
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route
+            path="/admin/login"
+            element={<AdminLogin authToken={authToken} onLogin={handleLogin} />}
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedAdminRoute
+                authToken={authToken}
+                adminUser={adminUser}
+                onAuthReady={handleAuthReady}
+                onUnauthorized={handleUnauthorized}
+              />
+            }
+          />
         </Routes>
       </main>
       <Footer />
