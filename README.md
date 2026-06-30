@@ -103,7 +103,8 @@ The API runs at `http://localhost:5001`.
 
 Open the frontend and use the `Admin` link in the header, or visit
 `http://localhost:5173/admin` during development. The dashboard fetches
-workflow audit leads from the backend and allows status updates.
+workflow audit leads from the backend, shows lead metrics, supports searching
+and status filtering, and allows status updates.
 
 Status options:
 

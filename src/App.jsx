@@ -92,7 +92,7 @@ function Header() {
   const isAdminPage = location.pathname === '/admin'
 
   return (
-    <header className="site-header">
+    <header className={isAdminPage ? 'site-header admin-site-header' : 'site-header'}>
       <div className="header-main section-shell">
         <Link className="brand" to="/" aria-label="AutomateHER Studio home">
           <span className="brand-mark">A</span>
@@ -474,6 +474,9 @@ function AdminDashboard() {
   const [leads, setLeads] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isAdminDarkMode, setIsAdminDarkMode] = useState(false)
 
   async function loadLeads() {
     setIsLoading(true)
@@ -553,82 +556,181 @@ function AdminDashboard() {
     }
   }, [])
 
+  const metrics = [
+    { label: 'Total Leads', value: leads.length },
+    { label: 'New Leads', value: leads.filter((lead) => lead.status === 'New').length },
+    { label: 'Contacted', value: leads.filter((lead) => lead.status === 'Contacted').length },
+    {
+      label: 'Proposal Sent',
+      value: leads.filter((lead) => lead.status === 'Proposal Sent').length,
+    },
+    { label: 'Won', value: leads.filter((lead) => lead.status === 'Won').length },
+    { label: 'Lost', value: leads.filter((lead) => lead.status === 'Lost').length },
+  ]
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const filteredLeads = leads.filter((lead) => {
+    const matchesStatus = statusFilter === 'All' || lead.status === statusFilter
+    const searchableText = [lead.name, lead.business_name, lead.email]
+      .join(' ')
+      .toLowerCase()
+    const matchesSearch = normalizedSearch === '' || searchableText.includes(normalizedSearch)
+
+    return matchesStatus && matchesSearch
+  })
+
   return (
-    <section className="admin-section">
-      <div className="section-shell section-block">
-        <SectionIntro eyebrow="Development admin" title="Workflow audit leads">
-          View incoming workflow audit requests and update lead status while the
-          dashboard is still development-only.
-        </SectionIntro>
-        <div className="admin-toolbar">
-          <p>
+    <section className={`admin-section ${isAdminDarkMode ? 'admin-mode-dark' : 'admin-mode-light'}`}>
+      <div className="section-shell admin-shell">
+        <div className="admin-hero">
+          <div>
+            <p className="eyebrow">Internal workspace</p>
+            <h1>
+              Automate<span className="brand-inline-her">HER</span> Studio Admin
+            </h1>
+            <p>Workflow Audit Lead Dashboard</p>
+          </div>
+          <p className="admin-dev-note">
             Development-only admin dashboard. Authentication will be added in a
             future version.
           </p>
-          <button className="button button-secondary" type="button" onClick={loadLeads}>
-            Refresh leads
-          </button>
         </div>
-        {errorMessage && (
-          <p className="admin-message" role="alert">
-            {errorMessage}
-          </p>
-        )}
-        {isLoading ? (
-          <p className="admin-message">Loading workflow audit leads...</p>
-        ) : leads.length === 0 ? (
-          <p className="admin-message">No workflow audit leads yet.</p>
-        ) : (
-          <div className="lead-grid">
-            {leads.map((lead) => (
-              <article className="lead-card" key={lead.id}>
-                <div className="lead-card-header">
-                  <div>
-                    <h3>{lead.name}</h3>
-                    <p>{lead.business_name}</p>
-                  </div>
-                  <span>{formatLeadDate(lead.created_at)}</span>
-                </div>
-                <dl className="lead-details">
-                  <div>
-                    <dt>Email</dt>
-                    <dd>{lead.email}</dd>
-                  </div>
-                  <div>
-                    <dt>Business type</dt>
-                    <dd>{lead.business_type}</dd>
-                  </div>
-                  <div>
-                    <dt>Budget</dt>
-                    <dd>{lead.budget_range}</dd>
-                  </div>
-                  <div>
-                    <dt>Timeline</dt>
-                    <dd>{lead.project_timeline}</dd>
-                  </div>
-                  <div>
-                    <dt>Contact</dt>
-                    <dd>{lead.preferred_contact_method}</dd>
-                  </div>
-                </dl>
-                <label className="lead-status-label" htmlFor={`lead-status-${lead.id}`}>
-                  Status
-                </label>
-                <select
-                  id={`lead-status-${lead.id}`}
-                  value={lead.status}
-                  onChange={(event) => updateLeadStatus(lead.id, event.target.value)}
-                >
-                  {leadStatuses.map((status) => (
-                    <option value={status} key={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </article>
-            ))}
+
+        <div className="admin-appearance-panel" aria-label="Admin appearance controls">
+          <div>
+            <p className="eyebrow">Admin appearance</p>
+            <h2>Midnight Plum dashboard</h2>
           </div>
-        )}
+          <div className="appearance-controls">
+            <button
+              className={isAdminDarkMode ? 'mode-toggle is-on' : 'mode-toggle'}
+              type="button"
+              aria-pressed={isAdminDarkMode}
+              onClick={() => setIsAdminDarkMode((currentMode) => !currentMode)}
+            >
+              <span aria-hidden="true"></span>
+              {isAdminDarkMode ? 'Dark mode' : 'Light mode'}
+            </button>
+          </div>
+        </div>
+
+        <div className="admin-metrics" aria-label="Workflow audit lead metrics">
+          {metrics.map((metric) => (
+            <article className="metric-tile" key={metric.label}>
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+            </article>
+          ))}
+        </div>
+
+        <div className="lead-management-card">
+          <div className="admin-toolbar">
+            <div>
+              <p className="eyebrow">Lead management</p>
+              <h2>Workflow audit requests</h2>
+            </div>
+            <button className="button button-secondary" type="button" onClick={loadLeads}>
+              Refresh leads
+            </button>
+          </div>
+
+          <div className="admin-filters">
+            <div className="form-field">
+              <label htmlFor="lead-search">Search leads</label>
+              <input
+                id="lead-search"
+                type="search"
+                value={searchTerm}
+                placeholder="Search name, business, or email"
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="status-filter">Filter by status</label>
+              <select
+                id="status-filter"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="All">All statuses</option>
+                {leadStatuses.map((status) => (
+                  <option value={status} key={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {errorMessage && (
+            <p className="admin-message error-message" role="alert">
+              {errorMessage}
+            </p>
+          )}
+          {isLoading ? (
+            <p className="admin-message loading-message">Loading workflow audit leads...</p>
+          ) : leads.length === 0 ? (
+            <div className="admin-empty-state">
+              <span aria-hidden="true">A</span>
+              <h3>No workflow audit leads yet.</h3>
+              <p>
+                Once someone submits the audit form, their request will appear
+                here.
+              </p>
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="admin-empty-state">
+              <span aria-hidden="true">A</span>
+              <h3>No matching leads.</h3>
+              <p>Try another search term or choose a different status filter.</p>
+            </div>
+          ) : (
+            <div className="lead-table-wrap">
+              <table className="lead-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Business</th>
+                    <th>Email</th>
+                    <th>Type</th>
+                    <th>Budget</th>
+                    <th>Timeline</th>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLeads.map((lead) => (
+                    <tr key={lead.id}>
+                      <td data-label="Name">{lead.name}</td>
+                      <td data-label="Business">{lead.business_name}</td>
+                      <td data-label="Email">{lead.email}</td>
+                      <td data-label="Type">{lead.business_type}</td>
+                      <td data-label="Budget">{lead.budget_range}</td>
+                      <td data-label="Timeline">{lead.project_timeline}</td>
+                      <td data-label="Contact">{lead.preferred_contact_method}</td>
+                      <td data-label="Status">
+                        <select
+                          className="status-select"
+                          aria-label={`Update status for ${lead.name}`}
+                          value={lead.status}
+                          onChange={(event) => updateLeadStatus(lead.id, event.target.value)}
+                        >
+                          {leadStatuses.map((status) => (
+                            <option value={status} key={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td data-label="Created">{formatLeadDate(lead.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   )
@@ -665,7 +767,7 @@ function Footer() {
   const isAdminPage = location.pathname === '/admin'
 
   return (
-    <footer className="site-footer">
+    <footer className={isAdminPage ? 'site-footer admin-site-footer' : 'site-footer'}>
       <div className="section-shell footer-layout">
         <div>
           <Link className="brand footer-brand" to="/" aria-label="AutomateHER Studio home">
