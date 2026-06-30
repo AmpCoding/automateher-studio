@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import './App.css'
 
@@ -1260,191 +1260,202 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
               <p>Try another search term or choose a different status filter.</p>
             </div>
           ) : (
-            <div className="lead-table-wrap">
-              <table className="lead-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Business</th>
-                    <th>Email</th>
-                    <th>Type</th>
-                    <th>Budget</th>
-                    <th>Timeline</th>
-                    <th>Contact</th>
-                    <th>Priority</th>
-                    <th>Package</th>
-                    <th>Follow-up</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                {filteredLeads.map((lead) => (
-                  <Fragment key={lead.id}>
-                    <tr>
-                      <td data-label="Name">{lead.name}</td>
-                      <td data-label="Business">{lead.business_name}</td>
-                      <td data-label="Email">{lead.email}</td>
-                      <td data-label="Type">{lead.business_type}</td>
-                      <td data-label="Budget">{lead.budget_range}</td>
-                      <td data-label="Timeline">{lead.project_timeline}</td>
-                      <td data-label="Contact">{lead.preferred_contact_method}</td>
-                      <td data-label="Priority">{lead.priority || 'Normal'}</td>
-                      <td data-label="Package">{lead.package_interest || 'Not Sure Yet'}</td>
-                      <td data-label="Follow-up">
-                        {lead.follow_up_date ? formatLeadDate(lead.follow_up_date) : 'Not set'}
-                      </td>
-                      <td data-label="Status">
-                        <select
-                          className="status-select"
-                          aria-label={`Update status for ${lead.name}`}
-                          value={lead.status}
-                          onChange={(event) => updateLeadStatus(lead.id, event.target.value)}
-                        >
-                          {leadStatuses.map((status) => (
-                            <option value={status} key={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td data-label="Created">{formatLeadDate(lead.created_at)}</td>
-                    </tr>
-                    <tr className="notes-row">
-                      <td colSpan="12">
-                        <div className="lead-admin-detail-grid">
-                          <div className="lead-follow-up-panel">
-                            <div>
-                              <span>Follow-up tracking</span>
-                              <p>
-                                {lead.priority || 'Normal'} priority
-                                {lead.follow_up_date
-                                  ? ` · Follow up ${formatLeadDate(lead.follow_up_date)}`
-                                  : ' · No follow-up date set'}
-                              </p>
-                            </div>
-                            <div className="follow-up-controls">
-                              <div className="form-field">
-                                <label htmlFor={`lead-priority-${lead.id}`}>Priority</label>
-                                <select
-                                  id={`lead-priority-${lead.id}`}
-                                  value={followUpDrafts[lead.id]?.priority || 'Normal'}
-                                  onChange={(event) =>
-                                    setFollowUpDrafts((currentDrafts) => ({
-                                      ...currentDrafts,
-                                      [lead.id]: {
-                                        ...currentDrafts[lead.id],
-                                        priority: event.target.value,
-                                      },
-                                    }))
-                                  }
-                                >
-                                  {priorityOptions.map((priority) => (
-                                    <option value={priority} key={priority}>
-                                      {priority}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="form-field">
-                                <label htmlFor={`lead-package-${lead.id}`}>Package interest</label>
-                                <select
-                                  id={`lead-package-${lead.id}`}
-                                  value={followUpDrafts[lead.id]?.packageInterest || 'Not Sure Yet'}
-                                  onChange={(event) =>
-                                    setFollowUpDrafts((currentDrafts) => ({
-                                      ...currentDrafts,
-                                      [lead.id]: {
-                                        ...currentDrafts[lead.id],
-                                        packageInterest: event.target.value,
-                                      },
-                                    }))
-                                  }
-                                >
-                                  {packageInterestOptions.map((packageInterest) => (
-                                    <option value={packageInterest} key={packageInterest}>
-                                      {packageInterest}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="form-field">
-                                <label htmlFor={`lead-follow-up-${lead.id}`}>Follow-up date</label>
-                                <input
-                                  id={`lead-follow-up-${lead.id}`}
-                                  type="date"
-                                  value={followUpDrafts[lead.id]?.followUpDate || ''}
-                                  onChange={(event) =>
-                                    setFollowUpDrafts((currentDrafts) => ({
-                                      ...currentDrafts,
-                                      [lead.id]: {
-                                        ...currentDrafts[lead.id],
-                                        followUpDate: event.target.value,
-                                      },
-                                    }))
-                                  }
-                                />
-                              </div>
-                            </div>
-                            <div className="lead-notes-actions">
-                              <button
-                                className="button button-secondary notes-save-button"
-                                type="button"
-                                disabled={savingFollowUpId === lead.id}
-                                onClick={() => updateLeadFollowUp(lead.id)}
-                              >
-                                {savingFollowUpId === lead.id ? 'Saving follow-up...' : 'Save Follow-Up'}
-                              </button>
-                              {followUpMessages[lead.id]?.text && (
-                                <p className={`note-save-message ${followUpMessages[lead.id].type}`}>
-                                  {followUpMessages[lead.id].text}
-                                </p>
-                              )}
-                            </div>
+            <div className="lead-card-list">
+              {filteredLeads.map((lead) => (
+                <article className="admin-lead-card" key={lead.id}>
+                  <div className="lead-summary">
+                    <div className="lead-identity">
+                      <p className="eyebrow">Workflow lead</p>
+                      <h3>{lead.name}</h3>
+                      <p>{lead.business_name}</p>
+                      <a href={`mailto:${lead.email}`}>{lead.email}</a>
+                    </div>
+                    <div className="lead-summary-badges" aria-label={`Summary for ${lead.name}`}>
+                      <span className="lead-badge status-badge">{lead.status}</span>
+                      <span className={`lead-badge priority-${(lead.priority || 'Normal').toLowerCase()}`}>
+                        {lead.priority || 'Normal'}
+                      </span>
+                      <span className="lead-badge">{lead.package_interest || 'Not Sure Yet'}</span>
+                      <span className="lead-badge">
+                        {lead.follow_up_date ? `Follow up ${formatLeadDate(lead.follow_up_date)}` : 'No follow-up date'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <details className="lead-details-panel">
+                    <summary>View Details</summary>
+                    <div className="lead-card-sections">
+                      <section className="lead-section">
+                        <h4>Business Details</h4>
+                        <dl className="lead-detail-list">
+                          <div>
+                            <dt>Business type</dt>
+                            <dd>{lead.business_type}</dd>
                           </div>
-                          <div className="lead-notes-panel">
-                          <div className="lead-notes-current">
-                            <span>Current notes</span>
-                            <p>{lead.notes || 'No internal notes yet.'}</p>
+                          <div>
+                            <dt>Current process</dt>
+                            <dd>{lead.current_process}</dd>
                           </div>
-                          <div className="lead-notes-editor">
-                            <label htmlFor={`lead-notes-${lead.id}`}>Internal notes</label>
-                            <textarea
-                              id={`lead-notes-${lead.id}`}
-                              value={noteDrafts[lead.id] || ''}
-                              rows="4"
-                              placeholder="Add private follow-up details, context, next steps, or reminders..."
+                          <div>
+                            <dt>Workflow problem</dt>
+                            <dd>{lead.biggest_problem}</dd>
+                          </div>
+                          <div>
+                            <dt>Tools used</dt>
+                            <dd>{lead.tools_used}</dd>
+                          </div>
+                          <div>
+                            <dt>Budget range</dt>
+                            <dd>{lead.budget_range}</dd>
+                          </div>
+                          <div>
+                            <dt>Project timeline</dt>
+                            <dd>{lead.project_timeline}</dd>
+                          </div>
+                          <div>
+                            <dt>Preferred contact</dt>
+                            <dd>{lead.preferred_contact_method}</dd>
+                          </div>
+                          <div>
+                            <dt>Created</dt>
+                            <dd>{formatLeadDate(lead.created_at)}</dd>
+                          </div>
+                        </dl>
+                      </section>
+
+                      <section className="lead-section">
+                        <h4>Admin Actions</h4>
+                        <div className="admin-action-grid">
+                          <div className="form-field">
+                            <label htmlFor={`lead-status-${lead.id}`}>Status</label>
+                            <select
+                              id={`lead-status-${lead.id}`}
+                              className="status-select"
+                              value={lead.status}
+                              onChange={(event) => updateLeadStatus(lead.id, event.target.value)}
+                            >
+                              {leadStatuses.map((status) => (
+                                <option value={status} key={status}>
+                                  {status}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="form-field">
+                            <label htmlFor={`lead-priority-${lead.id}`}>Priority</label>
+                            <select
+                              id={`lead-priority-${lead.id}`}
+                              value={followUpDrafts[lead.id]?.priority || 'Normal'}
                               onChange={(event) =>
-                                setNoteDrafts((currentDrafts) => ({
+                                setFollowUpDrafts((currentDrafts) => ({
                                   ...currentDrafts,
-                                  [lead.id]: event.target.value,
+                                  [lead.id]: {
+                                    ...currentDrafts[lead.id],
+                                    priority: event.target.value,
+                                  },
                                 }))
                               }
-                            ></textarea>
-                            <div className="lead-notes-actions">
-                              <button
-                                className="button button-secondary notes-save-button"
-                                type="button"
-                                disabled={savingNoteId === lead.id}
-                                onClick={() => updateLeadNotes(lead.id)}
-                              >
-                                {savingNoteId === lead.id ? 'Saving notes...' : 'Save Notes'}
-                              </button>
-                              {noteMessages[lead.id]?.text && (
-                                <p className={`note-save-message ${noteMessages[lead.id].type}`}>
-                                  {noteMessages[lead.id].text}
-                                </p>
-                              )}
-                            </div>
+                            >
+                              {priorityOptions.map((priority) => (
+                                <option value={priority} key={priority}>
+                                  {priority}
+                                </option>
+                              ))}
+                            </select>
                           </div>
+                          <div className="form-field">
+                            <label htmlFor={`lead-package-${lead.id}`}>Package interest</label>
+                            <select
+                              id={`lead-package-${lead.id}`}
+                              value={followUpDrafts[lead.id]?.packageInterest || 'Not Sure Yet'}
+                              onChange={(event) =>
+                                setFollowUpDrafts((currentDrafts) => ({
+                                  ...currentDrafts,
+                                  [lead.id]: {
+                                    ...currentDrafts[lead.id],
+                                    packageInterest: event.target.value,
+                                  },
+                                }))
+                              }
+                            >
+                              {packageInterestOptions.map((packageInterest) => (
+                                <option value={packageInterest} key={packageInterest}>
+                                  {packageInterest}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="form-field">
+                            <label htmlFor={`lead-follow-up-${lead.id}`}>Follow-up date</label>
+                            <input
+                              id={`lead-follow-up-${lead.id}`}
+                              type="date"
+                              value={followUpDrafts[lead.id]?.followUpDate || ''}
+                              onChange={(event) =>
+                                setFollowUpDrafts((currentDrafts) => ({
+                                  ...currentDrafts,
+                                  [lead.id]: {
+                                    ...currentDrafts[lead.id],
+                                    followUpDate: event.target.value,
+                                  },
+                                }))
+                              }
+                            />
                           </div>
                         </div>
-                      </td>
-                    </tr>
-                  </Fragment>
-                ))}
-                </tbody>
-              </table>
+                        <div className="lead-card-actions">
+                          <button
+                            className="button button-secondary notes-save-button"
+                            type="button"
+                            disabled={savingFollowUpId === lead.id}
+                            onClick={() => updateLeadFollowUp(lead.id)}
+                          >
+                            {savingFollowUpId === lead.id ? 'Saving follow-up...' : 'Save Follow-Up'}
+                          </button>
+                          {followUpMessages[lead.id]?.text && (
+                            <p className={`note-save-message ${followUpMessages[lead.id].type}`}>
+                              {followUpMessages[lead.id].text}
+                            </p>
+                          )}
+                        </div>
+                      </section>
+
+                      <section className="lead-section">
+                        <h4>Internal Notes</h4>
+                        <p className="current-notes">{lead.notes || 'No internal notes yet.'}</p>
+                        <label htmlFor={`lead-notes-${lead.id}`}>Notes textarea</label>
+                        <textarea
+                          id={`lead-notes-${lead.id}`}
+                          value={noteDrafts[lead.id] || ''}
+                          rows="4"
+                          placeholder="Add private follow-up details, context, next steps, or reminders..."
+                          onChange={(event) =>
+                            setNoteDrafts((currentDrafts) => ({
+                              ...currentDrafts,
+                              [lead.id]: event.target.value,
+                            }))
+                          }
+                        ></textarea>
+                        <div className="lead-card-actions">
+                          <button
+                            className="button button-secondary notes-save-button"
+                            type="button"
+                            disabled={savingNoteId === lead.id}
+                            onClick={() => updateLeadNotes(lead.id)}
+                          >
+                            {savingNoteId === lead.id ? 'Saving notes...' : 'Save Notes'}
+                          </button>
+                          {noteMessages[lead.id]?.text && (
+                            <p className={`note-save-message ${noteMessages[lead.id].type}`}>
+                              {noteMessages[lead.id].text}
+                            </p>
+                          )}
+                        </div>
+                      </section>
+                    </div>
+                  </details>
+                </article>
+              ))}
             </div>
           )}
         </div>
