@@ -858,18 +858,21 @@ textarea:focus {
 }
 
 .admin-section input,
-.admin-section select {
+.admin-section select,
+.admin-section textarea {
   color: var(--admin-ink);
   border-color: var(--admin-line);
   background: color-mix(in srgb, var(--admin-panel) 86%, var(--admin-panel-strong));
 }
 
-.admin-section input::placeholder {
+.admin-section input::placeholder,
+.admin-section textarea::placeholder {
   color: color-mix(in srgb, var(--admin-muted) 74%, transparent);
 }
 
 .admin-section input:focus,
-.admin-section select:focus {
+.admin-section select:focus,
+.admin-section textarea:focus {
   border-color: var(--admin-accent);
   outline-color: color-mix(in srgb, var(--admin-accent) 28%, transparent);
 }
@@ -1214,6 +1217,86 @@ textarea:focus {
   background: color-mix(in srgb, var(--admin-primary) 8%, var(--admin-panel));
 }
 
+.lead-table .notes-row:hover {
+  background: transparent;
+}
+
+.notes-row td {
+  padding: 0 14px 18px;
+  background: color-mix(in srgb, var(--admin-primary) 4%, var(--admin-panel));
+}
+
+.lead-notes-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.38fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--admin-line);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--admin-panel) 92%, var(--admin-panel-strong)), var(--admin-panel));
+}
+
+.lead-notes-current,
+.lead-notes-editor {
+  min-width: 0;
+}
+
+.lead-notes-current span,
+.lead-notes-editor label {
+  display: block;
+  color: var(--admin-muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.lead-notes-current p {
+  margin: 8px 0 0;
+  color: var(--admin-ink);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.lead-notes-editor textarea {
+  min-height: 116px;
+  margin-top: 8px;
+}
+
+.lead-notes-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.notes-save-button {
+  min-height: 42px;
+}
+
+.note-save-message {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 0.88rem;
+  font-weight: 780;
+}
+
+.note-save-message.success {
+  color: #2e765a;
+}
+
+.note-save-message.error {
+  color: #9c3d4d;
+}
+
+.admin-mode-dark .note-save-message.success {
+  color: #9ee5c1;
+}
+
+.admin-mode-dark .note-save-message.error {
+  color: #ffb8c2;
+}
+
 .status-select {
   min-width: 150px;
   height: 42px;
@@ -1481,6 +1564,30 @@ textarea:focus {
 
   .lead-table td:last-child {
     border-bottom: 0;
+  }
+
+  .lead-table .notes-row {
+    margin-top: -8px;
+  }
+
+  .lead-table .notes-row td {
+    display: block;
+    padding: 0;
+    border-bottom: 0;
+    background: transparent;
+  }
+
+  .lead-table .notes-row td::before {
+    content: none;
+  }
+
+  .lead-notes-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .lead-notes-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .header-main {

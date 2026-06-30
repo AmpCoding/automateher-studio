@@ -98,13 +98,15 @@ The API runs at `http://localhost:5001`.
 - `POST /api/audit-leads`
 - `GET /api/audit-leads`
 - `PATCH /api/audit-leads/:id/status`
+- `PATCH /api/audit-leads/:id/notes`
 
 ## Admin Dashboard
 
 Open the frontend and use the `Admin` link in the header, or visit
 `http://localhost:5173/admin` during development. The dashboard fetches
 workflow audit leads from the backend, shows lead metrics, supports searching
-and status filtering, and allows status updates.
+and status filtering, allows status updates, and supports internal admin notes
+for each lead.
 
 Status options:
 

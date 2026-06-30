@@ -29,7 +29,7 @@ app.post('/api/audit-leads', async (request, response) => {
     budgetRange,
     projectTimeline,
     preferredContactMethod,
-  } = request.body
+  } = request.body || {}
 
   const requiredFields = [
     name,
@@ -103,7 +103,7 @@ app.get('/api/audit-leads', async (request, response) => {
 
 app.patch('/api/audit-leads/:id/status', async (request, response) => {
   const { id } = request.params
-  const { status } = request.body
+  const { status } = request.body || {}
 
   if (!allowedStatuses.includes(status)) {
     return response.status(400).json({ message: 'Invalid lead status.' })
@@ -126,6 +126,34 @@ app.patch('/api/audit-leads/:id/status', async (request, response) => {
   } catch (error) {
     console.error('Error updating audit lead status:', error)
     response.status(500).json({ message: 'Unable to update the workflow audit lead.' })
+  }
+})
+
+app.patch('/api/audit-leads/:id/notes', async (request, response) => {
+  const { id } = request.params
+  const { notes } = request.body || {}
+
+  if (typeof notes !== 'string') {
+    return response.status(400).json({ message: 'Notes must be text.' })
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE workflow_audit_leads
+       SET notes = $1, updated_at = NOW()
+       WHERE id = $2
+       RETURNING *`,
+      [notes, id],
+    )
+
+    if (result.rowCount === 0) {
+      return response.status(404).json({ message: 'Workflow audit lead not found.' })
+    }
+
+    response.json(result.rows[0])
+  } catch (error) {
+    console.error('Error updating audit lead notes:', error)
+    response.status(500).json({ message: 'Unable to update the workflow audit lead notes.' })
   }
 })
 

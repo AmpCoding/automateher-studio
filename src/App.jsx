@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 
@@ -477,6 +477,16 @@ function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
   const [isAdminDarkMode, setIsAdminDarkMode] = useState(false)
+  const [noteDrafts, setNoteDrafts] = useState({})
+  const [noteMessages, setNoteMessages] = useState({})
+  const [savingNoteId, setSavingNoteId] = useState(null)
+
+  function buildNoteDrafts(leadList) {
+    return leadList.reduce((drafts, lead) => {
+      drafts[lead.id] = lead.notes || ''
+      return drafts
+    }, {})
+  }
 
   async function loadLeads() {
     setIsLoading(true)
@@ -491,6 +501,7 @@ function AdminDashboard() {
 
       const data = await response.json()
       setLeads(data)
+      setNoteDrafts(buildNoteDrafts(data))
     } catch {
       setErrorMessage('Unable to load leads. Make sure the backend server is running.')
     } finally {
@@ -521,6 +532,48 @@ function AdminDashboard() {
     }
   }
 
+  async function updateLeadNotes(leadId) {
+    setSavingNoteId(leadId)
+    setNoteMessages((currentMessages) => ({
+      ...currentMessages,
+      [leadId]: { type: '', text: '' },
+    }))
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/audit-leads/${leadId}/notes`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notes: noteDrafts[leadId] || '' }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Unable to update workflow audit lead notes.')
+      }
+
+      const updatedLead = await response.json()
+      setLeads((currentLeads) =>
+        currentLeads.map((lead) => (lead.id === updatedLead.id ? updatedLead : lead)),
+      )
+      setNoteDrafts((currentDrafts) => ({
+        ...currentDrafts,
+        [updatedLead.id]: updatedLead.notes || '',
+      }))
+      setNoteMessages((currentMessages) => ({
+        ...currentMessages,
+        [leadId]: { type: 'success', text: 'Notes saved.' },
+      }))
+    } catch {
+      setNoteMessages((currentMessages) => ({
+        ...currentMessages,
+        [leadId]: { type: 'error', text: 'Unable to save notes. Please try again.' },
+      }))
+    } finally {
+      setSavingNoteId(null)
+    }
+  }
+
   useEffect(() => {
     let shouldUpdate = true
 
@@ -536,6 +589,7 @@ function AdminDashboard() {
 
         if (shouldUpdate) {
           setLeads(data)
+          setNoteDrafts(buildNoteDrafts(data))
           setErrorMessage('')
         }
       } catch {
@@ -700,8 +754,9 @@ function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLeads.map((lead) => (
-                    <tr key={lead.id}>
+                {filteredLeads.map((lead) => (
+                  <Fragment key={lead.id}>
+                    <tr>
                       <td data-label="Name">{lead.name}</td>
                       <td data-label="Business">{lead.business_name}</td>
                       <td data-label="Email">{lead.email}</td>
@@ -725,7 +780,48 @@ function AdminDashboard() {
                       </td>
                       <td data-label="Created">{formatLeadDate(lead.created_at)}</td>
                     </tr>
-                  ))}
+                    <tr className="notes-row">
+                      <td colSpan="9">
+                        <div className="lead-notes-panel">
+                          <div className="lead-notes-current">
+                            <span>Current notes</span>
+                            <p>{lead.notes || 'No internal notes yet.'}</p>
+                          </div>
+                          <div className="lead-notes-editor">
+                            <label htmlFor={`lead-notes-${lead.id}`}>Internal notes</label>
+                            <textarea
+                              id={`lead-notes-${lead.id}`}
+                              value={noteDrafts[lead.id] || ''}
+                              rows="4"
+                              placeholder="Add private follow-up details, context, next steps, or reminders..."
+                              onChange={(event) =>
+                                setNoteDrafts((currentDrafts) => ({
+                                  ...currentDrafts,
+                                  [lead.id]: event.target.value,
+                                }))
+                              }
+                            ></textarea>
+                            <div className="lead-notes-actions">
+                              <button
+                                className="button button-secondary notes-save-button"
+                                type="button"
+                                disabled={savingNoteId === lead.id}
+                                onClick={() => updateLeadNotes(lead.id)}
+                              >
+                                {savingNoteId === lead.id ? 'Saving notes...' : 'Save Notes'}
+                              </button>
+                              {noteMessages[lead.id]?.text && (
+                                <p className={`note-save-message ${noteMessages[lead.id].type}`}>
+                                  {noteMessages[lead.id].text}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </Fragment>
+                ))}
                 </tbody>
               </table>
             </div>
