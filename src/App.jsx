@@ -79,6 +79,14 @@ const timelineOptions = [
 const contactMethods = ['Email', 'Phone', 'Text']
 
 const leadStatuses = ['New', 'Reviewed', 'Contacted', 'Proposal Sent', 'Won', 'Lost']
+const priorityOptions = ['Low', 'Normal', 'High', 'Urgent']
+const packageInterestOptions = [
+  'Not Sure Yet',
+  'Starter Package',
+  'Growth Package',
+  'Monthly Support',
+  'Custom Build',
+]
 
 function BrandName() {
   return (
@@ -639,6 +647,28 @@ function formatLeadDate(dateValue) {
   }).format(new Date(dateValue))
 }
 
+function formatDateInputValue(dateValue) {
+  if (!dateValue) {
+    return ''
+  }
+
+  return new Date(dateValue).toISOString().slice(0, 10)
+}
+
+function isFollowUpDue(dateValue) {
+  if (!dateValue) {
+    return false
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const followUpDate = new Date(dateValue)
+  followUpDate.setHours(0, 0, 0, 0)
+
+  return followUpDate <= today
+}
+
 function getStoredAdminToken() {
   return localStorage.getItem(ADMIN_TOKEN_KEY) || ''
 }
@@ -826,14 +856,30 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
   const [errorMessage, setErrorMessage] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('All')
+  const [packageFilter, setPackageFilter] = useState('All')
   const [isAdminDarkMode, setIsAdminDarkMode] = useState(false)
   const [noteDrafts, setNoteDrafts] = useState({})
   const [noteMessages, setNoteMessages] = useState({})
   const [savingNoteId, setSavingNoteId] = useState(null)
+  const [followUpDrafts, setFollowUpDrafts] = useState({})
+  const [followUpMessages, setFollowUpMessages] = useState({})
+  const [savingFollowUpId, setSavingFollowUpId] = useState(null)
 
   function buildNoteDrafts(leadList) {
     return leadList.reduce((drafts, lead) => {
       drafts[lead.id] = lead.notes || ''
+      return drafts
+    }, {})
+  }
+
+  function buildFollowUpDrafts(leadList) {
+    return leadList.reduce((drafts, lead) => {
+      drafts[lead.id] = {
+        priority: lead.priority || 'Normal',
+        followUpDate: formatDateInputValue(lead.follow_up_date),
+        packageInterest: lead.package_interest || 'Not Sure Yet',
+      }
       return drafts
     }, {})
   }
@@ -861,6 +907,7 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
       const data = await response.json()
       setLeads(data)
       setNoteDrafts(buildNoteDrafts(data))
+      setFollowUpDrafts(buildFollowUpDrafts(data))
     } catch {
       setErrorMessage('Unable to load leads. Make sure the backend server is running.')
     } finally {
@@ -945,6 +992,63 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
     }
   }
 
+  async function updateLeadFollowUp(leadId) {
+    const draft = followUpDrafts[leadId] || {}
+    setSavingFollowUpId(leadId)
+    setFollowUpMessages((currentMessages) => ({
+      ...currentMessages,
+      [leadId]: { type: '', text: '' },
+    }))
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/audit-leads/${leadId}/follow-up`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          priority: draft.priority || 'Normal',
+          followUpDate: draft.followUpDate || '',
+          packageInterest: draft.packageInterest || 'Not Sure Yet',
+        }),
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          onUnauthorized()
+          return
+        }
+
+        throw new Error('Unable to update workflow audit lead follow-up.')
+      }
+
+      const updatedLead = await response.json()
+      setLeads((currentLeads) =>
+        currentLeads.map((lead) => (lead.id === updatedLead.id ? updatedLead : lead)),
+      )
+      setFollowUpDrafts((currentDrafts) => ({
+        ...currentDrafts,
+        [updatedLead.id]: {
+          priority: updatedLead.priority || 'Normal',
+          followUpDate: formatDateInputValue(updatedLead.follow_up_date),
+          packageInterest: updatedLead.package_interest || 'Not Sure Yet',
+        },
+      }))
+      setFollowUpMessages((currentMessages) => ({
+        ...currentMessages,
+        [leadId]: { type: 'success', text: 'Follow-up saved.' },
+      }))
+    } catch {
+      setFollowUpMessages((currentMessages) => ({
+        ...currentMessages,
+        [leadId]: { type: 'error', text: 'Unable to save follow-up details. Please try again.' },
+      }))
+    } finally {
+      setSavingFollowUpId(null)
+    }
+  }
+
   useEffect(() => {
     let shouldUpdate = true
 
@@ -970,6 +1074,7 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
         if (shouldUpdate) {
           setLeads(data)
           setNoteDrafts(buildNoteDrafts(data))
+          setFollowUpDrafts(buildFollowUpDrafts(data))
           setErrorMessage('')
         }
       } catch {
@@ -992,8 +1097,8 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
 
   const metrics = [
     { label: 'Total Leads', value: leads.length },
-    { label: 'New Leads', value: leads.filter((lead) => lead.status === 'New').length },
-    { label: 'Contacted', value: leads.filter((lead) => lead.status === 'Contacted').length },
+    { label: 'Urgent Leads', value: leads.filter((lead) => lead.priority === 'Urgent').length },
+    { label: 'Follow-Ups Due', value: leads.filter((lead) => isFollowUpDue(lead.follow_up_date)).length },
     {
       label: 'Proposal Sent',
       value: leads.filter((lead) => lead.status === 'Proposal Sent').length,
@@ -1004,12 +1109,15 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
   const normalizedSearch = searchTerm.trim().toLowerCase()
   const filteredLeads = leads.filter((lead) => {
     const matchesStatus = statusFilter === 'All' || lead.status === statusFilter
+    const matchesPriority = priorityFilter === 'All' || (lead.priority || 'Normal') === priorityFilter
+    const matchesPackage =
+      packageFilter === 'All' || (lead.package_interest || 'Not Sure Yet') === packageFilter
     const searchableText = [lead.name, lead.business_name, lead.email]
       .join(' ')
       .toLowerCase()
     const matchesSearch = normalizedSearch === '' || searchableText.includes(normalizedSearch)
 
-    return matchesStatus && matchesSearch
+    return matchesStatus && matchesPriority && matchesPackage && matchesSearch
   })
 
   return (
@@ -1097,6 +1205,36 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
                 ))}
               </select>
             </div>
+            <div className="form-field">
+              <label htmlFor="priority-filter">Filter by priority</label>
+              <select
+                id="priority-filter"
+                value={priorityFilter}
+                onChange={(event) => setPriorityFilter(event.target.value)}
+              >
+                <option value="All">All priorities</option>
+                {priorityOptions.map((priority) => (
+                  <option value={priority} key={priority}>
+                    {priority}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label htmlFor="package-filter">Filter by package</label>
+              <select
+                id="package-filter"
+                value={packageFilter}
+                onChange={(event) => setPackageFilter(event.target.value)}
+              >
+                <option value="All">All packages</option>
+                {packageInterestOptions.map((packageInterest) => (
+                  <option value={packageInterest} key={packageInterest}>
+                    {packageInterest}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {errorMessage && (
@@ -1133,6 +1271,9 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
                     <th>Budget</th>
                     <th>Timeline</th>
                     <th>Contact</th>
+                    <th>Priority</th>
+                    <th>Package</th>
+                    <th>Follow-up</th>
                     <th>Status</th>
                     <th>Created</th>
                   </tr>
@@ -1148,6 +1289,11 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
                       <td data-label="Budget">{lead.budget_range}</td>
                       <td data-label="Timeline">{lead.project_timeline}</td>
                       <td data-label="Contact">{lead.preferred_contact_method}</td>
+                      <td data-label="Priority">{lead.priority || 'Normal'}</td>
+                      <td data-label="Package">{lead.package_interest || 'Not Sure Yet'}</td>
+                      <td data-label="Follow-up">
+                        {lead.follow_up_date ? formatLeadDate(lead.follow_up_date) : 'Not set'}
+                      </td>
                       <td data-label="Status">
                         <select
                           className="status-select"
@@ -1165,8 +1311,98 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
                       <td data-label="Created">{formatLeadDate(lead.created_at)}</td>
                     </tr>
                     <tr className="notes-row">
-                      <td colSpan="9">
-                        <div className="lead-notes-panel">
+                      <td colSpan="12">
+                        <div className="lead-admin-detail-grid">
+                          <div className="lead-follow-up-panel">
+                            <div>
+                              <span>Follow-up tracking</span>
+                              <p>
+                                {lead.priority || 'Normal'} priority
+                                {lead.follow_up_date
+                                  ? ` · Follow up ${formatLeadDate(lead.follow_up_date)}`
+                                  : ' · No follow-up date set'}
+                              </p>
+                            </div>
+                            <div className="follow-up-controls">
+                              <div className="form-field">
+                                <label htmlFor={`lead-priority-${lead.id}`}>Priority</label>
+                                <select
+                                  id={`lead-priority-${lead.id}`}
+                                  value={followUpDrafts[lead.id]?.priority || 'Normal'}
+                                  onChange={(event) =>
+                                    setFollowUpDrafts((currentDrafts) => ({
+                                      ...currentDrafts,
+                                      [lead.id]: {
+                                        ...currentDrafts[lead.id],
+                                        priority: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                >
+                                  {priorityOptions.map((priority) => (
+                                    <option value={priority} key={priority}>
+                                      {priority}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="form-field">
+                                <label htmlFor={`lead-package-${lead.id}`}>Package interest</label>
+                                <select
+                                  id={`lead-package-${lead.id}`}
+                                  value={followUpDrafts[lead.id]?.packageInterest || 'Not Sure Yet'}
+                                  onChange={(event) =>
+                                    setFollowUpDrafts((currentDrafts) => ({
+                                      ...currentDrafts,
+                                      [lead.id]: {
+                                        ...currentDrafts[lead.id],
+                                        packageInterest: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                >
+                                  {packageInterestOptions.map((packageInterest) => (
+                                    <option value={packageInterest} key={packageInterest}>
+                                      {packageInterest}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="form-field">
+                                <label htmlFor={`lead-follow-up-${lead.id}`}>Follow-up date</label>
+                                <input
+                                  id={`lead-follow-up-${lead.id}`}
+                                  type="date"
+                                  value={followUpDrafts[lead.id]?.followUpDate || ''}
+                                  onChange={(event) =>
+                                    setFollowUpDrafts((currentDrafts) => ({
+                                      ...currentDrafts,
+                                      [lead.id]: {
+                                        ...currentDrafts[lead.id],
+                                        followUpDate: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                />
+                              </div>
+                            </div>
+                            <div className="lead-notes-actions">
+                              <button
+                                className="button button-secondary notes-save-button"
+                                type="button"
+                                disabled={savingFollowUpId === lead.id}
+                                onClick={() => updateLeadFollowUp(lead.id)}
+                              >
+                                {savingFollowUpId === lead.id ? 'Saving follow-up...' : 'Save Follow-Up'}
+                              </button>
+                              {followUpMessages[lead.id]?.text && (
+                                <p className={`note-save-message ${followUpMessages[lead.id].type}`}>
+                                  {followUpMessages[lead.id].text}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="lead-notes-panel">
                           <div className="lead-notes-current">
                             <span>Current notes</span>
                             <p>{lead.notes || 'No internal notes yet.'}</p>
@@ -1200,6 +1436,7 @@ function AdminDashboard({ authToken, adminUser, onUnauthorized }) {
                                 </p>
                               )}
                             </div>
+                          </div>
                           </div>
                         </div>
                       </td>

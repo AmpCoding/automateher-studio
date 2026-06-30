@@ -12,6 +12,7 @@ This version includes:
 - Express API for workflow audit leads
 - PostgreSQL schema for saved submissions
 - JWT-protected admin dashboard for reviewing leads and updating status
+- Admin follow-up tracking for priority, package interest, and follow-up dates
 - Optional email notifications for Workflow Audit submissions
 
 The admin dashboard uses a simple local admin login. Replace development
@@ -158,6 +159,7 @@ Protected admin routes:
 - `GET /api/audit-leads`
 - `PATCH /api/audit-leads/:id/status`
 - `PATCH /api/audit-leads/:id/notes`
+- `PATCH /api/audit-leads/:id/follow-up`
 - `POST /api/admin/test-email`
 
 ## Admin Dashboard
@@ -165,8 +167,8 @@ Protected admin routes:
 Visit `http://localhost:5173/admin/login` and sign in with the seeded local
 admin user. After login, `http://localhost:5173/admin` fetches workflow audit
 leads from the backend, shows lead metrics, supports searching and status
-filtering, allows status updates, and supports internal admin notes for each
-lead.
+filtering, allows status updates, supports internal admin notes, and tracks
+priority, package interest, and follow-up date for each lead.
 
 Status options:
 

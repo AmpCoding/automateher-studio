@@ -12,6 +12,14 @@ const HOST = process.env.HOST || '127.0.0.1'
 const JWT_SECRET = process.env.JWT_SECRET
 
 const allowedStatuses = ['New', 'Reviewed', 'Contacted', 'Proposal Sent', 'Won', 'Lost']
+const allowedPriorities = ['Low', 'Normal', 'High', 'Urgent']
+const allowedPackageInterests = [
+  'Not Sure Yet',
+  'Starter Package',
+  'Growth Package',
+  'Monthly Support',
+  'Custom Build',
+]
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -279,6 +287,53 @@ app.patch('/api/audit-leads/:id/notes', requireAuth, async (request, response) =
   } catch (error) {
     console.error('Error updating audit lead notes:', error)
     response.status(500).json({ message: 'Unable to update the workflow audit lead notes.' })
+  }
+})
+
+app.patch('/api/audit-leads/:id/follow-up', requireAuth, async (request, response) => {
+  const { id } = request.params
+  const { priority, followUpDate, follow_up_date, packageInterest, package_interest } = request.body || {}
+  const cleanPriority = cleanText(priority || 'Normal')
+  const cleanFollowUpDate = cleanText(followUpDate || follow_up_date)
+  const cleanPackageInterest = cleanText(packageInterest || package_interest)
+
+  if (!allowedPriorities.includes(cleanPriority)) {
+    return response.status(400).json({ message: 'Please choose a valid priority.' })
+  }
+
+  if (cleanPackageInterest && !allowedPackageInterests.includes(cleanPackageInterest)) {
+    return response.status(400).json({ message: 'Please choose a valid package interest.' })
+  }
+
+  if (cleanFollowUpDate && Number.isNaN(Date.parse(`${cleanFollowUpDate}T00:00:00`))) {
+    return response.status(400).json({ message: 'Please choose a valid follow-up date.' })
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE workflow_audit_leads
+       SET priority = $1,
+           follow_up_date = $2,
+           package_interest = $3,
+           updated_at = NOW()
+       WHERE id = $4
+       RETURNING *`,
+      [
+        cleanPriority,
+        cleanFollowUpDate || null,
+        cleanPackageInterest,
+        id,
+      ],
+    )
+
+    if (result.rowCount === 0) {
+      return response.status(404).json({ message: 'Workflow audit lead not found.' })
+    }
+
+    response.json(result.rows[0])
+  } catch (error) {
+    console.error('Error updating audit lead follow-up:', error)
+    response.status(500).json({ message: 'Unable to update the workflow audit lead follow-up.' })
   }
 })
 

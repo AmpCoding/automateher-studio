@@ -1209,11 +1209,11 @@ textarea:focus {
 }
 
 .admin-filters .form-field:first-child {
-  flex: 1 1 420px;
+  flex: 1 1 320px;
 }
 
-.admin-filters .form-field:last-child {
-  flex: 0 1 260px;
+.admin-filters .form-field:not(:first-child) {
+  flex: 0 1 220px;
 }
 
 .admin-message {
@@ -1287,7 +1287,7 @@ textarea:focus {
 
 .lead-table {
   width: 100%;
-  min-width: 1060px;
+  min-width: 1320px;
   border-collapse: collapse;
 }
 
@@ -1335,9 +1335,15 @@ textarea:focus {
   background: color-mix(in srgb, var(--admin-primary) 4%, var(--admin-panel));
 }
 
+.lead-admin-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(360px, 1.1fr);
+  gap: 16px;
+}
+
+.lead-follow-up-panel,
 .lead-notes-panel {
   display: grid;
-  grid-template-columns: minmax(220px, 0.38fr) minmax(0, 1fr);
   gap: 16px;
   padding: 16px;
   border: 1px solid var(--admin-line);
@@ -1346,11 +1352,21 @@ textarea:focus {
     linear-gradient(180deg, color-mix(in srgb, var(--admin-panel) 92%, var(--admin-panel-strong)), var(--admin-panel));
 }
 
+.lead-notes-panel {
+  grid-template-columns: minmax(220px, 0.38fr) minmax(0, 1fr);
+}
+
+.lead-follow-up-panel {
+  align-content: start;
+}
+
+.lead-follow-up-panel span,
 .lead-notes-current,
 .lead-notes-editor {
   min-width: 0;
 }
 
+.lead-follow-up-panel span,
 .lead-notes-current span,
 .lead-notes-editor label {
   display: block;
@@ -1360,11 +1376,18 @@ textarea:focus {
   text-transform: uppercase;
 }
 
+.lead-follow-up-panel p,
 .lead-notes-current p {
   margin: 8px 0 0;
   color: var(--admin-ink);
   line-height: 1.55;
   white-space: pre-wrap;
+}
+
+.follow-up-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .lead-notes-editor textarea {
@@ -1695,6 +1718,11 @@ textarea:focus {
   }
 
   .lead-notes-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .lead-admin-detail-grid,
+  .follow-up-controls {
     grid-template-columns: 1fr;
   }
 

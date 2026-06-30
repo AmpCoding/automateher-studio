@@ -13,9 +13,21 @@ CREATE TABLE IF NOT EXISTS workflow_audit_leads (
   preferred_contact_method TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'New',
   notes TEXT DEFAULT '',
+  priority TEXT NOT NULL DEFAULT 'Normal',
+  follow_up_date DATE,
+  package_interest TEXT DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE workflow_audit_leads
+  ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'Normal';
+
+ALTER TABLE workflow_audit_leads
+  ADD COLUMN IF NOT EXISTS follow_up_date DATE;
+
+ALTER TABLE workflow_audit_leads
+  ADD COLUMN IF NOT EXISTS package_interest TEXT DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS workflow_audit_leads_created_at_idx
   ON workflow_audit_leads (created_at DESC);
