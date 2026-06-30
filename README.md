@@ -12,6 +12,7 @@ This version includes:
 - Express API for workflow audit leads
 - PostgreSQL schema for saved submissions
 - JWT-protected admin dashboard for reviewing leads and updating status
+- Optional email notifications for Workflow Audit submissions
 
 The admin dashboard uses a simple local admin login. Replace development
 secrets and passwords before deploying.
@@ -29,6 +30,7 @@ secrets and passwords before deploying.
 - pg
 - bcryptjs
 - jsonwebtoken
+- nodemailer
 
 ## Frontend Setup
 
@@ -82,10 +84,21 @@ JWT_SECRET=replace_with_a_long_random_secret
 ADMIN_NAME=Local Admin
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=change_this_password
+EMAIL_NOTIFICATIONS_ENABLED=true
+SMTP_HOST=your_smtp_host
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
+MAIL_FROM="AutomateHER Studio <hello@automateherstudio.com>"
+ADMIN_NOTIFICATION_EMAIL=your_admin_email@example.com
 ```
 
 Use a long random value for `JWT_SECRET`, and change the admin password before
 deployment.
+
+Do not commit `server/.env`. It should contain real local secrets only on your
+machine.
 
 Create the first local admin user after setting `server/.env`:
 
@@ -114,6 +127,23 @@ lead to PostgreSQL. Name, email, business details, process notes, workflow
 problem, tools used, budget range, timeline, and preferred contact method are
 required. Phone is optional.
 
+When email notifications are enabled and SMTP is configured, each successful
+submission sends a confirmation email to the lead and a new lead notification to
+the admin email address. The lead is saved before email is sent, so email
+delivery problems do not block form submission.
+
+If `EMAIL_NOTIFICATIONS_ENABLED` is not `true` or SMTP settings are incomplete,
+the server logs `Email notifications skipped. SMTP settings are not configured.`
+and continues saving leads normally.
+
+To test email locally, fill in the SMTP values in `server/.env`, set
+`ADMIN_NOTIFICATION_EMAIL` to your own test inbox, restart the backend, submit a
+Workflow Audit form, or call the protected test route:
+
+```bash
+POST /api/admin/test-email
+```
+
 ## API Routes
 
 Public routes:
@@ -128,6 +158,7 @@ Protected admin routes:
 - `GET /api/audit-leads`
 - `PATCH /api/audit-leads/:id/status`
 - `PATCH /api/audit-leads/:id/notes`
+- `POST /api/admin/test-email`
 
 ## Admin Dashboard
 

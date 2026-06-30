@@ -4,6 +4,7 @@ import 'dotenv/config'
 import express from 'express'
 import jwt from 'jsonwebtoken'
 import { pool } from './db.js'
+import { sendAdminTestEmail, sendWorkflowAuditEmails } from './email.js'
 
 const app = express()
 const PORT = process.env.PORT || 5001
@@ -197,7 +198,15 @@ app.post('/api/audit-leads', async (request, response) => {
       ],
     )
 
-    response.status(201).json(result.rows[0])
+    const savedLead = result.rows[0]
+
+    try {
+      await sendWorkflowAuditEmails(savedLead)
+    } catch (emailError) {
+      console.error('Error sending workflow audit emails:', emailError)
+    }
+
+    response.status(201).json(savedLead)
   } catch (error) {
     console.error('Error creating audit lead:', error)
     response.status(500).json({ message: 'Unable to save the workflow audit request.' })
@@ -270,6 +279,21 @@ app.patch('/api/audit-leads/:id/notes', requireAuth, async (request, response) =
   } catch (error) {
     console.error('Error updating audit lead notes:', error)
     response.status(500).json({ message: 'Unable to update the workflow audit lead notes.' })
+  }
+})
+
+app.post('/api/admin/test-email', requireAuth, async (request, response) => {
+  try {
+    const result = await sendAdminTestEmail(request.adminUser)
+
+    if (result.skipped) {
+      return response.json({ message: 'Email notifications skipped. SMTP settings are not configured.' })
+    }
+
+    response.json({ message: 'Test email sent.' })
+  } catch (error) {
+    console.error('Error sending admin test email:', error)
+    response.status(500).json({ message: 'Unable to send test email right now.' })
   }
 })
 
