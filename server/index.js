@@ -9,6 +9,12 @@ const HOST = process.env.HOST || '127.0.0.1'
 
 const allowedStatuses = ['New', 'Reviewed', 'Contacted', 'Proposal Sent', 'Won', 'Lost']
 
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function cleanText(value) {
+  return String(value || '').trim()
+}
+
 app.use(cors())
 app.use(express.json())
 
@@ -32,21 +38,25 @@ app.post('/api/audit-leads', async (request, response) => {
   } = request.body || {}
 
   const requiredFields = [
-    name,
-    email,
-    phone,
-    businessName,
-    businessType,
-    currentProcess,
-    workflowProblem,
-    toolsUsed,
-    budgetRange,
-    projectTimeline,
-    preferredContactMethod,
+    { label: 'Name', value: name },
+    { label: 'Email', value: email },
+    { label: 'Business name', value: businessName },
+    { label: 'Business type', value: businessType },
+    { label: 'Current process', value: currentProcess },
+    { label: 'Workflow problem', value: workflowProblem },
+    { label: 'Tools currently used', value: toolsUsed },
+    { label: 'Budget range', value: budgetRange },
+    { label: 'Project timeline', value: projectTimeline },
+    { label: 'Preferred contact method', value: preferredContactMethod },
   ]
+  const missingField = requiredFields.find((field) => !cleanText(field.value))
 
-  if (requiredFields.some((field) => !field)) {
-    return response.status(400).json({ message: 'Please complete all required fields.' })
+  if (missingField) {
+    return response.status(400).json({ message: `Please complete the ${missingField.label} field.` })
+  }
+
+  if (!emailPattern.test(cleanText(email))) {
+    return response.status(400).json({ message: 'Please enter a valid email address.' })
   }
 
   try {
@@ -67,17 +77,17 @@ app.post('/api/audit-leads', async (request, response) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
       [
-        name,
-        email,
-        phone,
-        businessName,
-        businessType,
-        currentProcess,
-        workflowProblem,
-        toolsUsed,
-        budgetRange,
-        projectTimeline,
-        preferredContactMethod,
+        cleanText(name),
+        cleanText(email),
+        cleanText(phone),
+        cleanText(businessName),
+        cleanText(businessType),
+        cleanText(currentProcess),
+        cleanText(workflowProblem),
+        cleanText(toolsUsed),
+        cleanText(budgetRange),
+        cleanText(projectTimeline),
+        cleanText(preferredContactMethod),
       ],
     )
 

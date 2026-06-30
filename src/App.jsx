@@ -293,19 +293,75 @@ function Packages() {
   )
 }
 
+const auditRequiredFields = {
+  name: 'Name is required.',
+  email: 'Email is required.',
+  businessName: 'Business name is required.',
+  businessType: 'Business type is required.',
+  currentProcess: 'Current process is required.',
+  workflowProblem: 'Workflow problem is required.',
+  toolsUsed: 'Tools currently used is required.',
+  budgetRange: 'Budget range is required.',
+  projectTimeline: 'Project timeline is required.',
+  preferredContactMethod: 'Preferred contact method is required.',
+}
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function RequiredMarker() {
+  return <span className="required-marker">Required</span>
+}
+
+function FieldMessage({ id, children, isError = false }) {
+  if (!children) {
+    return null
+  }
+
+  return (
+    <p className={isError ? 'field-message field-error' : 'field-message'} id={id}>
+      {children}
+    </p>
+  )
+}
+
 function WorkflowAuditForm() {
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+
+  function validateSubmission(submission) {
+    const errors = {}
+
+    Object.entries(auditRequiredFields).forEach(([fieldName, message]) => {
+      if (!String(submission[fieldName] || '').trim()) {
+        errors[fieldName] = message
+      }
+    })
+
+    if (submission.email && !emailPattern.test(String(submission.email).trim())) {
+      errors.email = 'Please enter a valid email address.'
+    }
+
+    return errors
+  }
 
   async function handleSubmit(event) {
     event.preventDefault()
     const form = event.currentTarget
     const formData = new FormData(form)
     const submission = Object.fromEntries(formData.entries())
+    const validationErrors = validateSubmission(submission)
+
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors)
+      setErrorMessage('Please review the highlighted fields before submitting.')
+      return
+    }
 
     setIsSubmitting(true)
     setErrorMessage('')
+    setFieldErrors({})
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/audit-leads`, {
@@ -317,14 +373,15 @@ function WorkflowAuditForm() {
       })
 
       if (!response.ok) {
-        throw new Error('Unable to submit workflow audit request.')
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.message || 'Unable to submit workflow audit request.')
       }
 
       form.reset()
       setSubmitted(true)
-    } catch {
+    } catch (error) {
       setErrorMessage(
-        'Something went wrong while sending your request. Please try again in a moment.',
+        error.message || 'Something went wrong while sending your request. Please try again in a moment.',
       )
     } finally {
       setIsSubmitting(false)
@@ -340,7 +397,15 @@ function WorkflowAuditForm() {
           Your workflow audit request has been received. I&rsquo;ll review your
           process and follow up with next steps.
         </p>
-        <button className="button button-secondary" onClick={() => setSubmitted(false)}>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={() => {
+            setSubmitted(false)
+            setErrorMessage('')
+            setFieldErrors({})
+          }}
+        >
           Send another request
         </button>
       </div>
@@ -349,66 +414,144 @@ function WorkflowAuditForm() {
 
   return (
     <div className="audit-form-panel">
-      <form className="audit-form" onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label htmlFor="name">Name</label>
-          <input id="name" name="name" type="text" autoComplete="name" required />
+      <form className="audit-form" onSubmit={handleSubmit} noValidate>
+        <div className={fieldErrors.name ? 'form-field has-error' : 'form-field'}>
+          <label htmlFor="name">
+            Name <RequiredMarker />
+          </label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            placeholder="Your full name"
+            aria-describedby="name-message"
+            aria-invalid={Boolean(fieldErrors.name)}
+          />
+          <FieldMessage id="name-message" isError={Boolean(fieldErrors.name)}>
+            {fieldErrors.name}
+          </FieldMessage>
         </div>
-        <div className="form-field">
-          <label htmlFor="email">Email</label>
-          <input id="email" name="email" type="email" autoComplete="email" required />
+        <div className={fieldErrors.email ? 'form-field has-error' : 'form-field'}>
+          <label htmlFor="email">
+            Email <RequiredMarker />
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            aria-describedby="email-message"
+            aria-invalid={Boolean(fieldErrors.email)}
+          />
+          <FieldMessage id="email-message" isError={Boolean(fieldErrors.email)}>
+            {fieldErrors.email || 'Use the best email for follow-up.'}
+          </FieldMessage>
         </div>
         <div className="form-field">
           <label htmlFor="phone">Phone</label>
-          <input id="phone" name="phone" type="tel" autoComplete="tel" required />
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            placeholder="Optional"
+            aria-describedby="phone-message"
+          />
+          <FieldMessage id="phone-message">Optional if email is easiest.</FieldMessage>
         </div>
-        <div className="form-field">
-          <label htmlFor="business-name">Business name</label>
-          <input id="business-name" name="businessName" type="text" required />
+        <div className={fieldErrors.businessName ? 'form-field has-error' : 'form-field'}>
+          <label htmlFor="business-name">
+            Business name <RequiredMarker />
+          </label>
+          <input
+            id="business-name"
+            name="businessName"
+            type="text"
+            placeholder="Your business or organization"
+            aria-describedby="business-name-message"
+            aria-invalid={Boolean(fieldErrors.businessName)}
+          />
+          <FieldMessage id="business-name-message" isError={Boolean(fieldErrors.businessName)}>
+            {fieldErrors.businessName}
+          </FieldMessage>
         </div>
-        <div className="form-field">
-          <label htmlFor="business-type">Business type</label>
+        <div className={fieldErrors.businessType ? 'form-field has-error' : 'form-field'}>
+          <label htmlFor="business-type">
+            Business type <RequiredMarker />
+          </label>
           <input
             id="business-type"
             name="businessType"
             type="text"
             placeholder="Nonprofit, salon, agency, clinic..."
-            required
+            aria-describedby="business-type-message"
+            aria-invalid={Boolean(fieldErrors.businessType)}
           />
+          <FieldMessage id="business-type-message" isError={Boolean(fieldErrors.businessType)}>
+            {fieldErrors.businessType}
+          </FieldMessage>
         </div>
-        <div className="form-field full-width">
-          <label htmlFor="current-process">Current process</label>
+        <div className={fieldErrors.currentProcess ? 'form-field full-width has-error' : 'form-field full-width'}>
+          <label htmlFor="current-process">
+            Current process <RequiredMarker />
+          </label>
           <textarea
             id="current-process"
             name="currentProcess"
             rows="4"
             placeholder="What happens today from intake to completion?"
-            required
+            aria-describedby="current-process-message"
+            aria-invalid={Boolean(fieldErrors.currentProcess)}
           ></textarea>
+          <FieldMessage id="current-process-message" isError={Boolean(fieldErrors.currentProcess)}>
+            {fieldErrors.currentProcess || 'A short overview is perfect. Bullet-style notes are fine.'}
+          </FieldMessage>
         </div>
-        <div className="form-field full-width">
-          <label htmlFor="workflow-problem">Biggest workflow problem</label>
+        <div className={fieldErrors.workflowProblem ? 'form-field full-width has-error' : 'form-field full-width'}>
+          <label htmlFor="workflow-problem">
+            Biggest workflow problem <RequiredMarker />
+          </label>
           <textarea
             id="workflow-problem"
             name="workflowProblem"
             rows="4"
             placeholder="Where do things get delayed, duplicated, missed, or confusing?"
-            required
+            aria-describedby="workflow-problem-message"
+            aria-invalid={Boolean(fieldErrors.workflowProblem)}
           ></textarea>
+          <FieldMessage id="workflow-problem-message" isError={Boolean(fieldErrors.workflowProblem)}>
+            {fieldErrors.workflowProblem || 'This saves to the backend as workflowProblem and becomes biggest_problem in PostgreSQL.'}
+          </FieldMessage>
         </div>
-        <div className="form-field">
-          <label htmlFor="tools-used">Tools currently used</label>
+        <div className={fieldErrors.toolsUsed ? 'form-field has-error' : 'form-field'}>
+          <label htmlFor="tools-used">
+            Tools currently used <RequiredMarker />
+          </label>
           <input
             id="tools-used"
             name="toolsUsed"
             type="text"
             placeholder="Google Sheets, Airtable, email, Zapier..."
-            required
+            aria-describedby="tools-used-message"
+            aria-invalid={Boolean(fieldErrors.toolsUsed)}
           />
+          <FieldMessage id="tools-used-message" isError={Boolean(fieldErrors.toolsUsed)}>
+            {fieldErrors.toolsUsed}
+          </FieldMessage>
         </div>
-        <div className="form-field">
-          <label htmlFor="budget-range">Budget range</label>
-          <select id="budget-range" name="budgetRange" defaultValue="" required>
+        <div className={fieldErrors.budgetRange ? 'form-field has-error' : 'form-field'}>
+          <label htmlFor="budget-range">
+            Budget range <RequiredMarker />
+          </label>
+          <select
+            id="budget-range"
+            name="budgetRange"
+            defaultValue=""
+            aria-describedby="budget-range-message"
+            aria-invalid={Boolean(fieldErrors.budgetRange)}
+          >
             <option value="" disabled>
               Select a range
             </option>
@@ -418,10 +561,21 @@ function WorkflowAuditForm() {
               </option>
             ))}
           </select>
+          <FieldMessage id="budget-range-message" isError={Boolean(fieldErrors.budgetRange)}>
+            {fieldErrors.budgetRange}
+          </FieldMessage>
         </div>
-        <div className="form-field">
-          <label htmlFor="project-timeline">Project timeline</label>
-          <select id="project-timeline" name="projectTimeline" defaultValue="" required>
+        <div className={fieldErrors.projectTimeline ? 'form-field has-error' : 'form-field'}>
+          <label htmlFor="project-timeline">
+            Project timeline <RequiredMarker />
+          </label>
+          <select
+            id="project-timeline"
+            name="projectTimeline"
+            defaultValue=""
+            aria-describedby="project-timeline-message"
+            aria-invalid={Boolean(fieldErrors.projectTimeline)}
+          >
             <option value="" disabled>
               Select a timeline
             </option>
@@ -431,10 +585,21 @@ function WorkflowAuditForm() {
               </option>
             ))}
           </select>
+          <FieldMessage id="project-timeline-message" isError={Boolean(fieldErrors.projectTimeline)}>
+            {fieldErrors.projectTimeline}
+          </FieldMessage>
         </div>
-        <div className="form-field">
-          <label htmlFor="contact-method">Preferred contact method</label>
-          <select id="contact-method" name="preferredContactMethod" defaultValue="" required>
+        <div className={fieldErrors.preferredContactMethod ? 'form-field has-error' : 'form-field'}>
+          <label htmlFor="contact-method">
+            Preferred contact method <RequiredMarker />
+          </label>
+          <select
+            id="contact-method"
+            name="preferredContactMethod"
+            defaultValue=""
+            aria-describedby="contact-method-message"
+            aria-invalid={Boolean(fieldErrors.preferredContactMethod)}
+          >
             <option value="" disabled>
               Select a method
             </option>
@@ -444,6 +609,9 @@ function WorkflowAuditForm() {
               </option>
             ))}
           </select>
+          <FieldMessage id="contact-method-message" isError={Boolean(fieldErrors.preferredContactMethod)}>
+            {fieldErrors.preferredContactMethod}
+          </FieldMessage>
         </div>
         {errorMessage && (
           <p className="form-error" role="alert">
@@ -451,7 +619,7 @@ function WorkflowAuditForm() {
           </p>
         )}
         <button className="button button-primary form-submit" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Sending request...' : 'Request workflow audit'}
+          {isSubmitting ? 'Sending...' : 'Request workflow audit'}
         </button>
       </form>
       <p className="form-note">

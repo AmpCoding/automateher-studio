@@ -8,7 +8,7 @@ workflow automations, dashboards, alerts, and business process cleanup.
 This version includes:
 
 - Responsive Sapphire & Soft Pearl marketing homepage
-- Workflow Audit lead form
+- Workflow Audit lead form with frontend and backend validation
 - Express API for workflow audit leads
 - PostgreSQL schema for saved submissions
 - Development-only admin dashboard for reviewing leads and updating status
@@ -91,6 +91,13 @@ npm run dev:server
 ```
 
 The API runs at `http://localhost:5001`.
+
+## Workflow Audit Form
+
+The public Workflow Audit form submits to the Express backend and saves each
+lead to PostgreSQL. Name, email, business details, process notes, workflow
+problem, tools used, budget range, timeline, and preferred contact method are
+required. Phone is optional.
 
 ## API Routes
 

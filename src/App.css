@@ -737,6 +737,20 @@ label {
   font-weight: 850;
 }
 
+.required-marker {
+  display: inline-flex;
+  margin-left: 6px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: var(--hero);
+  font-size: 0.66rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--secondary) 58%, white);
+  vertical-align: middle;
+}
+
 input,
 select,
 textarea {
@@ -766,6 +780,25 @@ select:focus,
 textarea:focus {
   border-color: var(--accent);
   outline: 3px solid var(--focus);
+}
+
+.form-field.has-error input,
+.form-field.has-error select,
+.form-field.has-error textarea {
+  border-color: #9a3a4d;
+  background: rgba(255, 246, 246, 0.96);
+}
+
+.field-message {
+  margin: -2px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.field-error {
+  color: #8b2f43;
+  font-weight: 760;
 }
 
 .form-submit {
